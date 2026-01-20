@@ -1,0 +1,20 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "instrumental-data-analyzer"
+description = "A platform for analyzing instrumental data"
+version = "0.3.0"
+readme = "README.md"
+packages = [{ include = "instrumental_data_analyzer" }]
+
+[tool.poetry.dependencies]
+python = ">=3.11"
+numpy = "*"
+pandas = "*"
+matplotlib = "*"
+jupyterlab = "*"
+scipy = "*"
+scikit-learn = "*"
+impedance = "*"
