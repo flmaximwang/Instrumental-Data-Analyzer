@@ -12,3 +12,7 @@ This project is aimed to provide a platform to analyze various instrumental data
 
 This project is designed for interactive manipulation with jupyter notebook. See the examples folder for
 general methods to process data from different sources.
+
+# INSTALLATION
+
+Use `pip install git+https://github.com/flmaximwang/Instrumental-Data-Analyzer.git` to install this package and dependencies in your environment.
