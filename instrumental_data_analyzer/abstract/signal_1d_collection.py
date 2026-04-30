@@ -1,3 +1,4 @@
+from typing import Callable, Iterable
 from dataclasses import dataclass, field
 from copy import deepcopy
 from pathlib import Path
@@ -38,11 +39,12 @@ class Signal1DCollection(SignalCollection):
     # ============================ Constructors ============================
 
     @classmethod
-    def from_similar_signals(
-        cls,
-        signals: list[Signal1D],
-    ):
-        "Quickly create a Signal1DCollection from a list of similar Signal1D"
+    def from_similar_signals(cls, signals: list[Signal1D], name="Untitled"):
+        """
+        Quickly create a Signal1DCollection from a list of similar Signal1D.
+        Similar signals are defined as the signals sharing the same axis and value annotations.
+        The axis and value annotations of the collection will be inherited from the first signal in the list.
+        """
 
         axis_annotation = deepcopy(signals[0].axis_annotation)
         value_annotation = deepcopy(signals[0].value_annotation)
@@ -51,6 +53,7 @@ class Signal1DCollection(SignalCollection):
             signals=signals,
             description_annotations=[axis_annotation, value_annotation],
             visible_signal_names=[signal.name for signal in signals],
+            name=name,
         )
         return result
 
@@ -67,7 +70,16 @@ class Signal1DCollection(SignalCollection):
                 if signal_renaming:
                     signals.append(signal)
                     signal.name = f"{signal_collection.name}_{signal.name}"
-        return cls(signals, name=name)
+        return cls(signals=signals, name=name)
+
+    def extend_signals(self, new_signals: list[Signal1D]) -> None:
+        for signal in new_signals:
+            if signal.name in self.signal_names:
+                raise ValueError(
+                    f"Signal name {signal.name} already exists in the collection"
+                )
+            self.signals.append(signal)
+            self.visible_signal_names.append(signal.name)
 
     # ============================ Aligner ============================
 
@@ -132,7 +144,7 @@ class Signal1DCollection(SignalCollection):
             for i, signal_name in enumerate(self.visible_signal_names):
                 signal: Signal1D = self[signal_name]
                 handles.append(signal.plot_at(ax, color=f"C{i}", **kwargs))
-        else:
+        elif isinstance(cmap, Callable):
             my_len = len(self.visible_signal_names)
             if my_len > 1:
                 for i, signal_name in enumerate(self.visible_signal_names):
@@ -150,6 +162,17 @@ class Signal1DCollection(SignalCollection):
             else:
                 signal = self[self.visible_signal_names[0]]
                 handles.append(signal.plot_at(ax, color=cmap(1.0), **kwargs))
+        elif isinstance(cmap, Iterable):
+            if len(cmap) != len(self.visible_signal_names):
+                raise ValueError(
+                    "The length of colormap should be the same as the number of visible signals"
+                    f" (expected {len(self.visible_signal_names)}, got {len(cmap)})"
+                )
+            for i, signal_name in enumerate(self.visible_signal_names):
+                signal = self[signal_name]
+                handles.append(signal.plot_at(ax, color=cmap[i], **kwargs))
+        else:
+            raise ValueError("Invalid colormap")
         xticks = self.axis_annotation.ticks
         xticklabels = self.axis_annotation.ticklabels
         ax.set_xticks(xticks)
@@ -165,71 +188,6 @@ class Signal1DCollection(SignalCollection):
         ax.set_ylabel(self.value_annotation.label)
         ax.legend(handles=handles, ncols=legend_cols)
         ax.set_title(self.name)
-
-    # def plot_with_main_annotations(self, **kwargs):
-
-    #     ax: plt.Axes
-    #     fig, ax = self.subplots(1, 1)
-    #     axes = [ax]
-    #     handles = []
-    #     my_colormap = self.colormap
-    #     my_colormap_min = self.colormap_min
-    #     my_colormap_max = self.colormap_max
-    #     need_legend = kwargs.pop("legend", True)
-    #     legend_cols = kwargs.pop("legend_cols", 1)
-    #     axis_digits = kwargs.pop("axis_digits", 1)
-    #     value_digits = kwargs.pop("value_digits", 1)
-    #     if my_colormap == "default":
-    #         for i, signal_name in enumerate(self.visible_signal_names):
-    #             signal = self.signals[signal_name]
-    #             handles.append(signal.plot_at(ax, color=f"C{i}", **kwargs))
-    #     else:
-    #         if isinstance(my_colormap, list):
-    #             if len(my_colormap) != len(self.visible_signal_names):
-    #                 raise ValueError(
-    #                     "The length of colormap should be the same as the number of visible signals"
-    #                 )
-    #             for i, signal_name in enumerate(self.visible_signal_names):
-    #                 signal = self.signals[signal_name]
-    #                 handles.append(signal.plot_at(ax, color=my_colormap[i], **kwargs))
-    #         else:
-    #             my_len = len(self.visible_signal_names)
-    #             if my_len > 1:
-    #                 for i, signal_name in enumerate(self.visible_signal_names):
-    #                     signal = self.signals[signal_name]
-    #                     handles.append(
-    #                         signal.plot_at(
-    #                             ax,
-    #                             color=my_colormap(
-    #                                 i
-    #                                 / (my_len - 1)
-    #                                 * (my_colormap_max - my_colormap_min)
-    #                                 + my_colormap_min
-    #                             ),
-    #                             **kwargs,
-    #                         )
-    #                     )
-    #             else:
-    #                 signal = self.signals[self.visible_signal_names[0]]
-    #                 handles.append(signal.plot_at(ax, color=my_colormap(0.6), **kwargs))
-    #     main_signal = self[self.main_signal_name]
-    #     xticks = main_signal.get_axis_ticks()
-    #     xticklabels = main_signal.get_axis_ticklabels(digits=axis_digits)
-    #     yticks = main_signal.get_value_ticks()
-    #     yticklabels = main_signal.get_value_tick_labels(digits=value_digits)
-    #     ax.set_xticks(xticks)
-    #     ax.set_yticks(yticks)
-    #     ax.set_xticklabels(xticklabels)
-    #     ax.set_yticklabels(yticklabels)
-    #     ax.set_xlim([0, 1])
-    #     ax.set_ylim([0, 1])
-    #     ax.set_xlabel(self.get_axis_label())
-    #     ax.set_ylabel(main_signal.get_value_label())
-    #     if need_legend:
-    #         ax.legend(handles=handles, ncols=legend_cols)
-    #     ax.set_title(self.get_name())
-    #     fig.tight_layout()
-    #     return fig, axes
 
     def plot_with_all_annotations(self, axis_shift, **kwargs):
         ax: plt.Axes
@@ -461,7 +419,7 @@ class ContinuousSignal1DCollection(Signal1DCollection):
                 new_signal.name = base_name
                 new_signals.append(new_signal)
 
-        result = type(self).from_similar_signals(new_signals)
+        result = type(self).from_similar_signals(new_signals, name=self.name)
         return result
 
     def set_default_annotations(self):

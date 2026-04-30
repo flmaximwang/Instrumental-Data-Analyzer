@@ -6,6 +6,26 @@ import pandas as pd
 import numpy as np
 from ..abstract import Matrix, MatrixSeries
 
+PLATE_COL_NAMES = {
+    6: [1, 2, 3],
+    12: [1, 2, 3, 4],
+    24: [1, 2, 3, 4, 5, 6],
+    48: [1, 2, 3, 4, 5, 6, 7, 8],
+    96: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    384: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    + [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+}
+
+PLATE_ROW_NAMES = {
+    6: ["A", "B"],
+    12: ["A", "B", "C"],
+    24: ["A", "B", "C", "D"],
+    48: ["A", "B", "C", "D", "E", "F"],
+    96: ["A", "B", "C", "D", "E", "F", "G", "H"],
+    384: ["A", "B", "C", "D", "E", "F", "G", "H"]
+    + ["I", "J", "K", "L", "M", "N", "O", "P"],
+}
+
 
 @dataclass
 class MultiWellPlate(Matrix):
@@ -103,7 +123,89 @@ class MultiWellPlate(Matrix):
         legend_col_num=1,
     ):
         """
-        result: regression parameters
+        Perform a linear calibration using known wells, then estimate values for
+        measurement wells from the fitted line.
+
+        The method reads the response values stored in the current plate for all
+        calibration wells, fits a straight line with ``scipy.stats.linregress``
+        using ``calibration_values`` as the x-axis and the plate readings as the
+        y-axis, and then back-calculates the x values of the measurement wells
+        from the fitted model.
+
+        A scatter plot of calibration points and a fitted regression line is
+        created. Measurement wells are added to the same plot either with auto-
+        assigned Matplotlib cycle colors or with user-provided colors.
+
+        Parameters
+        ----------
+        calibration_values : list[float]
+            Known reference values used as the x-axis of the calibration curve.
+            The order must match ``calibration_markers`` exactly.
+        calibration_markers : list[tuple[str, int]]
+            Plate well markers for the calibration points. Each marker is a
+            ``(row_name, column_number)`` tuple such as ``("A", 1)``.
+        measurement_markers : list[tuple[str, int]]
+            Plate well markers whose values will be estimated from the fitted
+            calibration curve.
+        xlabel : str
+            Label for the x-axis of the generated plot.
+        ylabel : str
+            Label for the y-axis of the generated plot.
+        calibration_scatter_color : str, default="black"
+            Color used for the calibration scatter points.
+        calibration_scatter_size : float, default=30
+            Marker size used for the calibration scatter points.
+        calibration_scatter_marker : str, default="+"
+            Matplotlib marker style used for the calibration scatter points.
+        calibration_line_color : str, default="red"
+            Color used for the fitted regression line.
+        calibration_line_width : float, default=1
+            Line width used for the fitted regression line.
+        measurement_scatter_color : list[str] | str, default="default"
+            Color specification for measurement points.
+
+            - If set to ``"default"``, each measurement well is plotted with a
+              different Matplotlib cycle color and receives a legend entry.
+            - If a single color string is provided, all measurement wells are
+              plotted with that color and no legend is added.
+            - If a list of color strings is provided, its length must match
+              ``measurement_markers`` and each point receives a legend entry.
+        measurement_scatter_size : float, default=30
+            Marker size used for the measurement scatter points.
+        measurement_scatter_marker : str, default="^"
+            Matplotlib marker style used for the measurement scatter points.
+        legend_col_num : int, default=1
+            Number of columns used when rendering the legend for measurement
+            points that have individual labels.
+
+        Returns
+        -------
+        tuple
+            A 4-item tuple ``(fig, ax, result, result_table)`` where:
+
+            - ``fig`` is the created Matplotlib figure.
+            - ``ax`` is the Matplotlib axes containing the plot.
+            - ``result`` is the ``LinregressResult`` returned by
+              ``scipy.stats.linregress``.
+            - ``result_table`` is a pandas DataFrame with columns ``Markers``,
+              ``Values``, and ``Sigmas`` for the measurement wells.
+
+        Notes
+        -----
+        The estimated measurement value is calculated as
+        ``(measured_signal - intercept) / slope``.
+
+        The method also prints ``result_table`` to standard output in Markdown
+        table format via ``DataFrame.to_markdown()``.
+
+        Raises
+        ------
+        ValueError
+            If ``calibration_values`` and ``calibration_markers`` do not have
+            the same length.
+        ValueError
+            If ``measurement_scatter_color`` is a color list whose length does
+            not match the number of measurement wells.
         """
 
         if len(calibration_values) != len(calibration_markers):

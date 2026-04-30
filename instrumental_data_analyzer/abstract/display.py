@@ -1,3 +1,4 @@
+from typing import Callable, Iterable
 from dataclasses import dataclass
 from matplotlib.colors import Colormap
 from matplotlib.cm import get_cmap
@@ -40,8 +41,14 @@ class SignalPlotArgs:
             self._cmap = get_cmap(value)
         elif isinstance(value, Colormap) or value is None:
             self._cmap = value
+        elif isinstance(value, Callable):
+            self._cmap = value
+        elif isinstance(value, Iterable):
+            self._cmap = value
         else:
-            raise ValueError("cmap must be any of str, Colormap or None")
+            raise ValueError(
+                "cmap must be any of str, Colormap, Callable, Iterable or None"
+            )
 
 
 @dataclass

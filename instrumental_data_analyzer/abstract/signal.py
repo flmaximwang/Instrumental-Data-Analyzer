@@ -45,7 +45,7 @@ class ContDescAnno(DescAnno):
     """
 
     limit: tuple[float, float] = None
-    margin: tuple[float, float] = None
+    margin: tuple[float, float] = (0.0, 1.0)
     ticklabel_floor: float = None
     _ticklabel_space: float = None
     ticklabel_digits: int = 0

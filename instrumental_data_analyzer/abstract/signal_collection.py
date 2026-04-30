@@ -49,10 +49,17 @@ class SignalCollection:
     def keys(self):
         return [signal.name for signal in self.signals]
 
+    def _cache_index(self):
+        keys = self.keys()
+        self.__index_cache__ = {key: i for i, key in enumerate(keys)}
+
     def index(self, signal_name: str):
-        if not hasattr(self, "__index_cache"):
-            keys = self.keys()
-            self.__index_cache__ = {key: i for i, key in enumerate(keys)}
+        if (
+            not hasattr(self, "__index_cache__")
+            or self.__index_cache__ is None
+            or signal_name not in self.__index_cache__
+        ):
+            self._cache_index()
         if signal_name not in self.__index_cache__:
             raise KeyError(
                 f"Signal name {signal_name} does not exist in the collection"
@@ -92,28 +99,27 @@ class SignalCollection:
                 f"Signal name {signal.name} already exists in the collection"
             )
         self.signals.append(signal)
-        if self.__index_cache__ is not None:
-            self.__index_cache__[signal.name] = len(self.signals) - 1
+        self._cache_index()
 
     def remove_signal(self, signal_name: str) -> None:
         signal_index = self.index(signal_name)
         del self.signals[signal_index]
-        if self.__index_cache__ is not None:
-            self.__index_cache__ = None
         try:
             self.visible_signal_names.remove(signal_name)
         except ValueError:
             pass
+        self._cache_index()
 
     def rename_signal(self, old_signal_name, new_signal_name):
         signal = self[old_signal_name]
         signal.name = new_signal_name
-        if self.__index_cache__ is not None:
-            self.__index_cache__[new_signal_name] = self.__index_cache__.pop(
-                old_signal_name
-            )
-        self.visible_signal_names.remove(old_signal_name)
-        self.visible_signal_names.append(new_signal_name)
+        self._cache_index()
+        try:
+            old_idx = self.visible_signal_names.index(old_signal_name)
+            self.visible_signal_names.remove(old_signal_name)
+            self.visible_signal_names.insert(old_idx, new_signal_name)
+        except ValueError:
+            self.visible_signal_names.append(new_signal_name)
 
     def to_folder(self, directory: str | Path):
         """

@@ -5,6 +5,7 @@ from copy import deepcopy
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 from .signal import *
 from ..utils import path_utils, transform_utils
 
@@ -107,6 +108,7 @@ class Signal1D(Signal):
         value_unit=None,
         detect_axis_name_and_unit=False,
         detect_value_name_and_unit=False,
+        name="Untitled",
     ):
         """
         Given a dataframe with two/three columns, create a Signal1D object.
@@ -203,12 +205,12 @@ class Signal1D(Signal):
         The method to plot a signal should only be implemented when the form of signal has been well defined.
         Such a method should retrun a Line2D
         """
-        (handle,) = ax.plot([0], [0], label=label)
+        (handle,) = ax.plot([0], [0], label=label, **kwargs)
         return handle
 
 
 @dataclass
-class ContinuousSignal1D(Signal1D):
+class ContinuousSignal1D_Base(Signal1D):
     """
     ContinuousSignal1D 是 Signal1D 的子类, 用于表示 axis 与 value 都是连续的 Signal1D
     """
@@ -253,6 +255,7 @@ class ContinuousSignal1D(Signal1D):
         value_unit=None,
         detect_axis_name_and_unit=False,
         detect_value_name_and_unit=False,
+        name="Untitled",
     ):
         """
         Given a dataframe with two/three columns, create a Signal1D object.
@@ -295,7 +298,7 @@ class ContinuousSignal1D(Signal1D):
                 margin=(0, 1),
             ),
         ]
-        res = cls(data=data, description_annotations=description_annotations)
+        res = cls(data=data, description_annotations=description_annotations, name=name)
         res.update_data_headers()
         return res
 
@@ -322,8 +325,8 @@ class ContinuousSignal1D(Signal1D):
         list_of_axes = [signal.axis for signal in signals]
         merged_axis = np.unique(np.concatenate(list_of_axes))
         merged_axis.sort()
-        merged_value = np.zeros_like(merged_axis)
-        value_std = np.zeros_like(merged_axis)
+        merged_value = np.zeros_like(merged_axis, dtype=float)
+        value_std = np.zeros_like(merged_axis, dtype=float)
         for i, axis_i in enumerate(merged_axis):
             values = [signal[axis_i] for signal in signals]
             merged_value[i] = np.mean(values)
@@ -344,35 +347,50 @@ class ContinuousSignal1D(Signal1D):
         )
 
     def __add__(self, the_other, name=None):
-        if not isinstance(the_other, ContinuousSignal1D):
-            raise TypeError(
-                "Only ContinuousSignal1D can be added to ContinuousSignal1D"
+        if isinstance(the_other, (int, float)):
+            new_value = self.value + the_other
+            new_data = self.data.copy()
+            new_data.iloc[:, 1] = new_value
+            if self.value_std is not None:
+                new_data.iloc[:, 2] = self.value_std
+            result = type(self)(
+                data=new_data,
+                name=f"({self.name}) + ({the_other})" if name is None else name,
+                description_annotations=deepcopy(self.description_annotations),
             )
-        if (
-            self.axis_annotation.name != the_other.axis_annotation.name
-            or self.axis_annotation.unit != the_other.axis_annotation.unit
-            or self.value_annotation.name != the_other.value_annotation.name
-            or self.value_annotation.unit != the_other.value_annotation.unit
-        ):
+            return result
+        elif isinstance(the_other, ContinuousSignal1D):
+            if (
+                self.axis_annotation.name != the_other.axis_annotation.name
+                or self.axis_annotation.unit != the_other.axis_annotation.unit
+                or self.value_annotation.name != the_other.value_annotation.name
+                or self.value_annotation.unit != the_other.value_annotation.unit
+            ):
+                raise ValueError(
+                    "Only ContinuousSignal1D with the same axis and value name and unit can be added"
+                )
+            list_of_axes = [self.axis, the_other.axis]
+            merged_axis = np.unique(np.concatenate(list_of_axes))
+            merged_axis.sort()
+            merged_value = np.zeros_like(merged_axis)
+            for i, axis_i in enumerate(merged_axis):
+                merged_value[i] = self[axis_i] + the_other[axis_i]
+            merged_data = pd.DataFrame({"Axis": merged_axis, "Values": merged_value})
+            result = ContinuousSignal1D.from_data(
+                merged_data,
+                axis_name=self.axis_annotation.name,
+                axis_unit=self.axis_annotation.unit,
+                value_name=self.value_annotation.name,
+                value_unit=self.value_annotation.unit,
+            )
+            result.name = (
+                f"({self.name}) + ({the_other.name})" if name is None else name
+            )
+            return result
+        else:
             raise ValueError(
-                "Only ContinuousSignal1D with the same axis and value name and unit can be added"
+                f"Unsupported type for addition: {type(the_other)}, only int, float and ContinuousSignal1D are supported"
             )
-        list_of_axes = [self.axis, the_other.axis]
-        merged_axis = np.unique(np.concatenate(list_of_axes))
-        merged_axis.sort()
-        merged_value = np.zeros_like(merged_axis)
-        for i, axis_i in enumerate(merged_axis):
-            merged_value[i] = self[axis_i] + the_other[axis_i]
-        merged_data = pd.DataFrame({"Axis": merged_axis, "Values": merged_value})
-        result = ContinuousSignal1D.from_data(
-            merged_data,
-            axis_name=self.axis_annotation.name,
-            axis_unit=self.axis_annotation.unit,
-            value_name=self.value_annotation.name,
-            value_unit=self.value_annotation.unit,
-        )
-        result.name = f"({self.name}) + ({the_other.name})" if name is None else name
-        return result
 
     def __neg__(self, name=None):
         negated_data = self.data.copy()
@@ -387,6 +405,99 @@ class ContinuousSignal1D(Signal1D):
 
     def __sub__(self, the_other, name=None):
         return self.__add__(-the_other, name=name)
+
+    def __mul__(self, other, name=None):
+        if isinstance(other, (int, float)):
+            new_value = self.value * other
+            new_data = self.data.copy()
+            new_data.iloc[:, 1] = new_value
+            if self.value_std is not None:
+                new_data.iloc[:, 2] = self.value_std * abs(other)
+            result = type(self)(
+                data=new_data,
+                name=f"({self.name}) * ({other})" if name is None else name,
+                description_annotations=deepcopy(self.description_annotations),
+            )
+            return result
+        elif isinstance(other, ContinuousSignal1D):
+            if (
+                self.axis_annotation.name != other.axis_annotation.name
+                or self.axis_annotation.unit != other.axis_annotation.unit
+                or self.value_annotation.name != other.value_annotation.name
+                or self.value_annotation.unit != other.value_annotation.unit
+            ):
+                raise ValueError(
+                    "Only ContinuousSignal1D with the same axis and value name and unit can be multiplied"
+                )
+            data = {"x": list(self.axis), "y": [], "y_std": []}
+            for x in self.axis:
+                data["y"].append(self[x] * other[x])
+            if self.data.shape[1] >= 3 and other.data.shape[1] >= 3:
+                for i, x in enumerate(self.axis):
+                    y_std = abs(self[x] * other[x]) * np.sqrt(
+                        (self.value_std[i] / self[x]) ** 2
+                        + (other.value_std[i] / other[x]) ** 2
+                    )
+                    data["y_std"].append(y_std)
+            result = type(self)(
+                data=pd.DataFrame(data),
+                name=f"({self.name}) * ({other.name})" if name is None else name,
+                description_annotations=deepcopy(self.description_annotations),
+            )
+            return result
+        else:
+            raise ValueError(
+                f"Unsupported type for multiplication: {type(other)}, only int and float are supported"
+            )
+
+    def __truediv__(self, other, name=None):
+        if isinstance(other, (int, float)):
+            if other == 0:
+                raise ValueError("Cannot divide by zero")
+            new_value = self.value / other
+            new_data = self.data.copy()
+            new_data.iloc[:, 1] = new_value
+            if self.value_std is not None:
+                new_data.iloc[:, 2] = self.value_std / abs(other)
+            result = type(self)(
+                data=new_data,
+                name=f"({self.name}) / ({other})" if name is None else name,
+                description_annotations=deepcopy(self.description_annotations),
+            )
+            return result
+        elif isinstance(other, ContinuousSignal1D):
+            if (
+                self.axis_annotation.name != other.axis_annotation.name
+                or self.axis_annotation.unit != other.axis_annotation.unit
+                or self.value_annotation.name != other.value_annotation.name
+                or self.value_annotation.unit != other.value_annotation.unit
+            ):
+                raise ValueError(
+                    "Only ContinuousSignal1D with the same axis and value name and unit can be divided"
+                )
+            data = {"x": list(self.axis), "y": [], "y_std": []}
+            for x in self.axis:
+                if other[x] == 0:
+                    raise ValueError("Cannot divide by zero")
+                data["y"].append(self[x] / other[x])
+            if self.data.shape[1] >= 3 and other.data.shape[1] >= 3:
+                for i, x in enumerate(self.axis):
+                    y_std = abs(self[x] / other[x]) * np.sqrt(
+                        (self.value_std[i] / self[x]) ** 2
+                        + (other.value_std[i] / other[x]) ** 2
+                    )
+                    data["y_std"].append(y_std)
+            result = type(self)(
+                data=pd.DataFrame(data),
+                name=f"({self.name}) / ({other.name})" if name is None else name,
+                description_annotations=deepcopy(self.description_annotations),
+            )
+            result.name = f"({self.name}) / ({other.name})" if name is None else name
+            return result
+        else:
+            raise ValueError(
+                f"Unsupported type for division: {type(other)}, only int and float are supported"
+            )
 
     def blank_with(self, blank, name=None):
         return self.__sub__(
@@ -432,6 +543,7 @@ class ContinuousSignal1D(Signal1D):
         kwargs_for_annotate = kwargs.copy()
         kwargs_for_Line2D = kwargs.copy()
 
+        kwargs_for_annotate.pop("color", None)
         kwargs_for_Line2D.pop("fontsize", None)
         kwargs_for_Line2D.pop("rotation", None)
 
@@ -452,6 +564,10 @@ class ContinuousSignal1D(Signal1D):
             **kwargs_for_Line2D,
         )
         if self.value_std is not None:
+            l_color = handle.get_color()
+            rgba = mcolors.to_rgba(l_color)
+            alpha = 1.0 if rgba[3] is None else rgba[3] / 4
+            fill_color = rgba[:3] + (alpha,)
             ax.fill_between(
                 self.rescale(
                     self.axis,
@@ -468,7 +584,7 @@ class ContinuousSignal1D(Signal1D):
                     self.value_annotation.limit,
                     self.value_annotation.margin,
                 ),
-                alpha=0.2,
+                color=fill_color,
                 **kwargs_for_annotate,
             )
         return handle
@@ -619,6 +735,47 @@ class ContinuousSignal1D(Signal1D):
         )
 
         return peak_area
+
+
+class ContinuousSignal1D_Process(ContinuousSignal1D_Base):
+
+    def clean_by_moving_average(self, z_threshold=3):
+        """
+        Remove outliers from the signal using z-score method.
+        The z_threshold parameter is the threshold for z-score to identify outliers.
+        """
+        mean = self.value.mean()
+        std = self.value.std()
+        z_scores = (self.value - mean) / std
+        self.data = self.data[abs(z_scores) < z_threshold].reset_index(drop=True)
+
+    def filter_by_moving_average(self, window: int):
+        """
+        Signal filtering with moving average method. The window parameter is the number of points to be averaged.
+        """
+
+        if window < 1:
+            raise ValueError("Window size should be at least 1")
+        if window // 2 != 0:
+            left_shift = window // 2
+            right_shift = window // 2 + 1
+        else:
+            left_shift = window // 2
+            right_shift = window // 2
+        new_axis = self.axis[left_shift - 1 : -right_shift + 1].reset_index(drop=True)
+        new_value = np.convolve(self.value, np.ones(window) / window, mode="valid")
+        new_data = pd.DataFrame(
+            {
+                self.axis_annotation.label: new_axis,
+                self.value_annotation.label: new_value,
+            }
+        )
+        self.data = new_data
+
+
+@dataclass
+class ContinuousSignal1D(ContinuousSignal1D_Process):
+    pass
 
 
 @dataclass
