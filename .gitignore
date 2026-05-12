@@ -1,3 +1,11 @@
-conda-env/
-tests/
+# Project files
+.env
+conda-env
+tests
+test
+data
+playground
+
+# Python Cache
 __pycache__/
+*.pyc

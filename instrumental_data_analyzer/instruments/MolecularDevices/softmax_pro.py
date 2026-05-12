@@ -349,53 +349,63 @@ class SoftMaxPro_Plate:
         return well_markers
 
     @staticmethod
-    def parse_read(
-        text: str,
-        wavelengths: list[int] = None,
-    ):
+    def read_text_to_data(text: str) -> pd.DataFrame:
         """
-        Each read is organized as text separated by tabs.
-        This function parses the text and extracts the data matrix for this read.
-        The data matrix is returned as a pandas DataFrame directly correspinding to the plate layout,
-        with the row and column names corresponding to the well positions.
+        Read the text corresponding to a read and convert it to a pandas DataFrame. The text is organized in a specific format, which can be parsed to extract the data matrix for this read. The data matrix is returned as a pandas DataFrame directly correspinding to the plate layout, with the row and column names corresponding to the well positions.
         """
         data = pd.read_csv(
             StringIO(text),
             header=None,
             sep="\t",
         )
-        plate_data = data.iloc[0:, 2:-2]
-        for i in range(len(wavelengths) - 1):
-            plate_data = plate_data.drop(columns=plate_data.columns[(i + 1) * 13 - 1])
-        plate_shape = plate_data.shape
-        expected_col_num = {
-            6: (2, 3 * len(wavelengths)),
-            12: (3, 4 * len(wavelengths)),
-            24: (4, 6 * len(wavelengths)),
-            48: (6, 8 * len(wavelengths)),
-            96: (8, 12 * len(wavelengths)),
-            384: (16, 24 * len(wavelengths)),
-        }
-        flag = False
-        for i in expected_col_num:
-            if plate_shape == expected_col_num[i]:
-                col_names = PLATE_COL_NAMES[i]
-                row_names = PLATE_ROW_NAMES[i]
-                flag = True
-                break
-        if not flag:
-            raise ValueError(
-                f"Unsupported plate shape {plate_shape} for {len(wavelengths)} wavelengths."
-            )
-        col_names_with_wavelengths = []
-        for wavelength in wavelengths:
-            for col_name in col_names:
-                col_names_with_wavelengths.append(f"{col_name}_{wavelength}")
-        plate_data.columns = col_names_with_wavelengths
-        plate_data.index = row_names
         marker = data.iloc[0, 0]
         temperature = data.iloc[0, 1]
-        return marker, temperature, plate_data
+        plate_data = data.iloc[0:, 2:-2]
+        plate_shape = plate_data.shape
+
+        return marker, temperature, plate_data, plate_shape
+
+    @staticmethod
+    def parse_read(
+        text: str,
+        metadata: dict,
+    ):
+        """
+        Each read is organized as text separated by tabs.
+        This function parses the text and extracts the data matrix for this read.
+        The data matrix is returned as a pandas DataFrame directly correspinding to the plate layout,
+        with the row and column names corresponding to the well positions.
+
+        Parameters
+        ----------
+        text: str
+            The text corresponding to this read, which is organized in a specific format.
+        wavelengths: list[int], optional
+            The list of wavelengths for this read, which is used to determine the column names for the data matrix.
+            If the read method is kinetic and the read mode is absorbance,
+            the wavelengths are used to determine the column names for the data matrix.
+
+        Return
+        ------
+        marker: str
+            The marker of this read, which is usually the time for kinetic reads
+            and the wavelength for spectrum reads.
+        temperature: float
+            The temperature for this read.
+        plate_data: pd.DataFrame
+            The data matrix for this read, with the row and column names
+            corresponding to the well positions.
+        """
+
+        read_method = metadata["method"]
+        if read_method == "Kinetic":
+            return SoftMaxPro_Plate_Kinetic._parse_read(text, metadata=metadata)
+        elif read_method == "Spectrum":
+            return SoftMaxPro_Plate_Spectrum._parse_read(text, metadata=metadata)
+        elif read_method == "Endpoint":
+            return SoftMaxPro_Plate_Endpoint._parse_read(text, metadata=metadata)
+        else:
+            raise ValueError(f"Unsupported read method {read_method}")
 
     @staticmethod
     def parse_block(
@@ -536,6 +546,42 @@ class SoftMaxPro_Plate_Kinetic(ContinuousSignal1DCollection):
         res.metadata = metadata
         return res
 
+    @classmethod
+    def _parse_read(cls, text: str, metadata: dict):
+        time, temperature, plate_data, plate_shape = SoftMaxPro_Plate.read_text_to_data(
+            text
+        )
+        wavelengths = metadata["wavelengths"]
+        columns_to_drop = [plate_data.columns[i] for i in range(len(wavelengths) - 1)]
+        plate_data = plate_data.drop(columns=plate_data.columns[columns_to_drop])
+
+        expected_col_num = {
+            6: (2, 3 * len(wavelengths)),
+            12: (3, 4 * len(wavelengths)),
+            24: (4, 6 * len(wavelengths)),
+            48: (6, 8 * len(wavelengths)),
+            96: (8, 12 * len(wavelengths)),
+            384: (16, 24 * len(wavelengths)),
+        }
+        flag = False
+        for i in expected_col_num:
+            if plate_shape == expected_col_num[i]:
+                col_names = PLATE_COL_NAMES[i]
+                row_names = PLATE_ROW_NAMES[i]
+                flag = True
+                break
+        if not flag:
+            raise ValueError(
+                f"Unsupported plate shape {plate_shape} for {len(wavelengths)} wavelengths."
+            )
+        col_names_with_wavelengths = []
+        for wavelength in wavelengths:
+            for col_name in col_names:
+                col_names_with_wavelengths.append(f"{col_name}_{wavelength}")
+        plate_data.columns = col_names_with_wavelengths
+        plate_data.index = row_names
+        return time, temperature, plate_data
+
     def set_default_annotations(self):
         super().set_default_annotations()
         limit = None
@@ -598,7 +644,7 @@ class SoftMaxPro_Plate_Spectrum(ContinuousSignal1DCollection):
                 )
                 break
             wavelength, temperature, plate_data = SoftMaxPro_Plate.parse_read(
-                read_text, wavelengths=[None]
+                read_text, metadata=metadata
             )
             data_raw["Wavelength"].append(wavelength)
             data_raw["Temperature"].append(temperature)
@@ -654,6 +700,34 @@ class SoftMaxPro_Plate_Spectrum(ContinuousSignal1DCollection):
         )
         res.metadata = metadata
         return res
+
+    @staticmethod
+    def _parse_read(text: str, metadata: dict):
+        wavelength, temperature, plate_data, plate_shape = (
+            SoftMaxPro_Plate.read_text_to_data(text)
+        )
+        expected_col_num = {
+            6: (2, 3),
+            12: (3, 4),
+            24: (4, 6),
+            48: (6, 8),
+            96: (8, 12),
+            384: (16, 24),
+        }
+        flag = False
+        for i in expected_col_num:
+            if plate_shape == expected_col_num[i]:
+                col_names = PLATE_COL_NAMES[i]
+                row_names = PLATE_ROW_NAMES[i]
+                flag = True
+                break
+        if not flag:
+            raise ValueError(
+                f"Unsupported plate shape {plate_shape} for spectrum read."
+            )
+        plate_data.columns = col_names
+        plate_data.index = row_names
+        return wavelength, temperature, plate_data
 
 
 @dataclass

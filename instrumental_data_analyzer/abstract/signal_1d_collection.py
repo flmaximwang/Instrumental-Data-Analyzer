@@ -137,6 +137,7 @@ class Signal1DCollection(SignalCollection):
         cmap = self.plot_args.cmap
         cmap_limit = self.plot_args.cmap_limit
         legend_cols = self.plot_args.legend_cols
+        legend_bbox_to_anchor = self.plot_args.legend_bbox_to_anchor
 
         handles = []
 
@@ -186,7 +187,9 @@ class Signal1DCollection(SignalCollection):
         ax.set_ylim(0, 1)
         ax.set_xlabel(self.axis_annotation.label)
         ax.set_ylabel(self.value_annotation.label)
-        ax.legend(handles=handles, ncols=legend_cols)
+        ax.legend(
+            handles=handles, ncols=legend_cols, bbox_to_anchor=legend_bbox_to_anchor
+        )
         ax.set_title(self.name)
 
     def plot_with_all_annotations(self, axis_shift, **kwargs):

@@ -30,6 +30,7 @@ class SignalPlotArgs:
     _cmap: Colormap = None
     cmap_limit: tuple[float, float] = (0, 1)
     legend_cols: int = 1
+    legend_bbox_to_anchor: tuple[float, float] = (1.05, 1)
 
     @property
     def cmap(self) -> Colormap:
