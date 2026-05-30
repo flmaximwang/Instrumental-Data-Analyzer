@@ -1,3 +1,28 @@
+"""
+``instrumental_data_analyzer.concrete.multi_well_plates`` --- 多孔板数据
+==========================================================================
+
+多孔板 (Microplate) 相关的具体数据类型:
+
+- :class:`MultiWellPlate` : 单次读板数据
+  - 自动检测板型 (6, 12, 24, 48, 96, 384 孔)
+  - 支持标准曲线法校准测量
+
+- :class:`MultiWellPlateSeries` : 孔板时间序列
+
+支持的孔板布局:
+  ======  =========  =========
+  孔数    行标签     列标签
+  ======  =========  =========
+  6       A-B        1-3
+  12      A-C        1-4
+  24      A-D        1-6
+  48      A-F        1-8
+  96      A-H        1-12
+  384     A-P        1-24
+  ======  =========  =========
+"""
+
 from dataclasses import dataclass, field
 from pathlib import Path
 import scipy.stats as st

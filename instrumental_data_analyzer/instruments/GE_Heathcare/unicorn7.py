@@ -1,3 +1,21 @@
+"""
+``instruments.GE_Heathcare.unicorn7`` --- GE Healthcare / Cytiva Unicorn 7 (ÄKTA) 数据解析
+============================================================================================
+
+解析 Unicorn 7 软件导出的色谱数据 (UTF-16 LE 编码, tab 分隔的 .txt 文件)。
+
+:class:`Unicorn7Chrom` 继承自 :class:`Chrom`, 解析后返回色谱集合列表
+(每个色谱图对应一次进样/运行)。
+
+支持自动识别以下信号类型:
+- UV : 紫外吸收
+- Cond : 电导率
+- Conc B : 缓冲液 B 浓度
+- pH
+- Injection, Fraction : 进样和馏分标记
+- Run Log : 运行日志
+"""
+
 import os
 import re
 from copy import deepcopy

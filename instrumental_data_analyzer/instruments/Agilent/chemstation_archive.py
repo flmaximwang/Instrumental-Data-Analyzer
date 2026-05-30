@@ -1,8 +1,18 @@
-'''
-Author: Fanlin Maxim Wang
-Date: 2023-12-31
-Description: This module provides some useful functions for chromatography data processing.
-'''
+"""
+``instruments.Agilent.chemstation_archive`` --- Agilent ChemStation 数据解析 (旧版)
+====================================================================================
+
+**注意**: 这是基于旧框架的 ChemStation 数据解析器。
+推荐使用 ``chemstation_processor`` 模块中的新框架类。
+
+旧版包含:
+- :class:`Signal` : 通用一维信号 (适用于离散数据, 如馏分)
+- :class:`NumericSignal` : 数值型连续信号 (继承 ``Signal``)
+- :class:`Chromatogram` : 色谱图集合
+- :class:`ChemStationChromatogram` : ChemStation 专用色谱图
+
+旧版使用手动 getter/setter 模式, 没有 dataclass 和描述注释系统。
+"""
 
 import pandas as pd
 import numpy as np

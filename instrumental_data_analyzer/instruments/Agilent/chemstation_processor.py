@@ -1,3 +1,23 @@
+"""
+``instruments.Agilent.chemstation_processor`` --- Agilent ChemStation HPLC 数据解析
+====================================================================================
+
+基于新框架 (abstract layer) 的 Agilent ChemStation 数据解析器。
+
+解析 ChemStation 导出的 CSV 文件 (UTF-16 LE, tab 分隔):
+
+- :class:`ChemStSig` : 解析连续信号文件 (如 280.CSV, 214.CSV)
+- :class:`ChemStFrac` : 解析馏分文件 (Fraction.csv)
+- :class:`ChemStChrom` : 从导出目录读取完整色谱
+
+使用示例::
+
+    from instrumental_data_analyzer.instruments import ChemStChrom
+    chrom = ChemStChrom.from_exported_directory("path/to/chemstation_export/")
+    uv_signal = chrom["280"]
+    uv_signal.plot_at(ax)
+"""
+
 import os
 import pandas as pd
 from instrumental_data_analyzer.abstract.signal_1d import (

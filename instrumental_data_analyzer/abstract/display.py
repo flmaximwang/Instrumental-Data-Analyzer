@@ -1,3 +1,18 @@
+"""
+``instrumental_data_analyzer.abstract.display`` --- 绘图参数配置
+================================================================
+
+提供预定义的绘图参数 dataclass:
+
+- :class:`SignalPlotArgs` : 通用绘图参数 (图大小、配色方案、图例)
+- :class:`Signal1DPlotArgs` : 1D 信号专用绘图参数 (+ 绘图模式)
+
+绘图模式 (mode):
+  0: 所有信号共享坐标轴, 叠加显示 (适合同量纲信号比较)
+  1: 共享 x 轴, 每个信号独立 y 轴 (多轴对比, 适合不同量纲信号)
+  2: 每个信号绘制在单独的子图中 (分面绘图)
+"""
+
 from typing import Callable, Iterable
 from dataclasses import dataclass
 from matplotlib.colors import Colormap

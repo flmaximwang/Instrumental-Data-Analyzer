@@ -1,3 +1,19 @@
+"""
+``instrumental_data_analyzer.abstract.signal_1d_collection`` --- 1D 信号集合
+=============================================================================
+
+该模块实现了 :class:`SignalCollection` 的一维信号集合子类:
+
+- :class:`Signal1DCollection` : 容纳多个 ``Signal1D``, 支持:
+  - ``from_folder`` / ``from_similar_signals`` : 便捷构造器
+  - ``align_axes`` / ``align_values`` : 对齐坐标轴范围
+  - ``plot`` : 三种绘图模式 (0=单图多线, 1=多轴对比, 2=分面绘图)
+  - ``set_default_annotations`` : 自动推断各信号的范围和刻度
+
+- :class:`ContinuousSignal1DCollection` : 只容纳 ``ContinuousSignal1D``,
+  增加了 ``average_similar_signals`` 按名称分组求平均。
+"""
+
 from typing import Callable, Iterable
 from dataclasses import dataclass, field
 from copy import deepcopy
@@ -187,8 +203,12 @@ class Signal1DCollection(SignalCollection):
         ax.set_ylim(0, 1)
         ax.set_xlabel(self.axis_annotation.label)
         ax.set_ylabel(self.value_annotation.label)
+        print(legend_bbox_to_anchor)
         ax.legend(
-            handles=handles, ncols=legend_cols, bbox_to_anchor=legend_bbox_to_anchor
+            handles=handles,
+            ncols=legend_cols,
+            bbox_to_anchor=legend_bbox_to_anchor,
+            loc="upper left",
         )
         ax.set_title(self.name)
 

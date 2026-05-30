@@ -1,3 +1,15 @@
+"""
+``instrumental_data_analyzer.utils.transform_utils`` --- 数据缩放工具
+======================================================================
+
+提供数据线性变换函数, 用于将实际数据值缩放到绘图坐标系统。
+
+主要函数:
+- :func:`rescale` : 通用线性缩放 (old_range → new_range)
+- :func:`rescale_to_0_1` : 缩放到 [0, 1] 区间
+- :func:`extend_range` : 按比例扩展范围
+"""
+
 import numpy as np
 
 def rescale(data, old_start, old_end, new_start, new_end):

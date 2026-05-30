@@ -1,3 +1,20 @@
+"""
+``instrumental_data_analyzer.concrete.impedance_spectroscopy`` --- 阻抗谱数据
+===============================================================================
+
+电化学阻抗谱 (EIS) 相关的具体信号类型:
+
+- :class:`ImpedanceSpectrum` : 阻抗谱信号
+  - 三列数据: 频率 (Frequency, Hz), 实部 (Z', ohm), 虚部 (Z'', ohm)
+  - 支持 Nyquist 图和 Bode 图绘制
+
+- :class:`ImpedanceSpectrumCollection` : 阻抗谱集合
+  - 批量 Nyquist / Bode 图绘制
+  - 支持 colormap 配色
+
+使用 ``impedance`` 第三方包进行可视化。
+"""
+
 from ..abstract import Signal, SignalCollection, DescAnno
 
 # 如果有 impedance 包, 尝试导入以下的几个模块

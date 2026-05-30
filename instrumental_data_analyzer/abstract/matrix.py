@@ -1,5 +1,13 @@
 """
-Matrices are 2D arrays of values
+``instrumental_data_analyzer.abstract.matrix`` --- 矩阵
+========================================================
+
+:class:`Matrix` 是二维数据表, 以 :class:`pandas.DataFrame` 形式存储。
+与 :class:`Signal` 类似带有 ``description_annotations``。
+
+常用于多孔板数据或二维仪器数据。
+:class:`~instrumental_data_analyzer.abstract.matrix_collection.MatrixSeries`
+可用于管理时间序列中的多个矩阵。
 """
 
 from dataclasses import dataclass, field

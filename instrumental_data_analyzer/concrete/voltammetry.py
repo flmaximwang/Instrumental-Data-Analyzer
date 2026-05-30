@@ -1,3 +1,29 @@
+"""
+``instrumental_data_analyzer.concrete.voltammetry`` --- 伏安法数据
+====================================================================
+
+电化学伏安法相关的具体信号类型:
+
+- :class:`Voltammegram` : 循环伏安图
+  - 继承 :class:`SegmentedContinuousSignal1D`
+  - 电位 (Potential, V) 作为轴, 电流 (Current, A) 作为值
+  - 数据按扫描段 (Segment) 组织
+
+- :class:`VoltammegramCollection` : 伏安图集合
+
+数据格式约定:
+  ============  ============  =========  ========
+  Sequence      Potential (V) Current(A) Segment
+  ============  ============  =========  ========
+  0             0.2           0.2        1
+  1             0.22          0.3        1
+  ...           ...           ...        ...
+  10            0.4           0.4        1
+  11            0.38          0.38       2
+  ...           ...           ...        ...
+  ============  ============  =========  ========
+"""
+
 from instrumental_data_analyzer.abstract.signal_1d import ContinuousSignal1D
 from ..abstract.signal_1d import SegmentedContinuousSignal1D
 from ..abstract.signal_1d_collection import (
@@ -22,13 +48,12 @@ class Voltammegram(SegmentedContinuousSignal1D):
         11,0.38,0.38,2\n
         ...\n
         """
+        axis_anno = ContDescAnno(name="Potential", unit="V")
+        value_anno = ContDescAnno(name="Current", unit="A")
         super().__init__(
-            data,
-            name,
-            axis_name="Potential",
-            axis_unit="V",
-            value_name="Current",
-            value_unit="A",
+            data=data,
+            name=name,
+            description_annotations=[axis_anno, value_anno],
         )
 
     def get_current_limit(self):
@@ -42,40 +67,35 @@ class VoltammegramCollection(ContinuousSignal1DCollection):
 
     def __init__(
         self,
-        signals: list[Voltammegram] = [],
+        signals: list[Voltammegram] = None,
         name: str = "Default Voltammegram Collection",
-        main_signal_name: str = None,
         visible_signal_names: list[str] = None,
-        display_mode: str = None,
         figsize=None,
-        axis_description=ContDescAnno(
+    ):
+        if signals is None:
+            signals = []
+        axis_anno = ContDescAnno(
             name="Potential",
             unit="V",
             limit=(0, 0),
-            tick_number=6,
-            margin=(0.1, 0.1),
-            digits=2,
-        ),
-        value_description=ContDescAnno(
+            margin=(0.1, 0.9),
+        )
+        value_anno = ContDescAnno(
             name="Current",
             unit="A",
             limit=(0, 0),
-            tick_number=6,
-            margin=(0.1, 0.1),
-            digits=1,
-        ),
-    ):
+            margin=(0.1, 0.9),
+        )
+        description_annotations = [axis_anno, value_anno]
+        if visible_signal_names is None:
+            visible_signal_names = [sig.name for sig in signals]
         super().__init__(
             signals=signals,
             name=name,
-            main_signal_name=main_signal_name,
+            description_annotations=description_annotations,
             visible_signal_names=visible_signal_names,
-            display_mode=display_mode,
-            figsize=figsize,
-            axis_description=axis_description,
-            value_description=value_description,
         )
-        self.set_default_real_value_limit()
+        self.set_default_annotations()
 
     def __getitem__(self, key: str):
         res: Voltammegram = super().__getitem__(key)

@@ -1,3 +1,19 @@
+"""
+``instrumental_data_analyzer.abstract.signal_collection`` --- 信号集合基类
+==========================================================================
+
+:class:`SignalCollection` 是容纳多个信号对象的容器基类。
+
+主要功能:
+- 字典式访问: ``collection["name"]``
+- 信号增删改查: ``append``, ``remove_signal``, ``rename_signal``
+- 批量导出: ``to_folder``
+- 集合合并: ``merge``
+
+SignalCollection 是 ``Signal1DCollection`` 和 ``ImpedanceSpectrumCollection``
+等具体集合类的基类。
+"""
+
 import os, time, warnings
 from dataclasses import dataclass, field
 from pathlib import Path

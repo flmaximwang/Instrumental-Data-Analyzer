@@ -1,3 +1,36 @@
+"""
+``instruments.MolecularDevices.softmax_pro`` --- Molecular Devices SoftMax Pro 数据解析
+========================================================================================
+
+解析 SoftMax Pro 软件导出的 .txt / .xls 文件 (UTF-16 LE 编码)。
+
+文件格式:
+  - 以 ``##BLOCKS=N`` 开头, 包含 N 个 Block
+  - 每个 Block 以 ``~End`` 结束
+  - 每个 Block 对应一个孔板 (Plate)
+
+支持的读板模式:
+  - **Endpoint** : 终点法 → :class:`SoftMaxPro_Plate_Endpoint` (返回 :class:`MultiWellPlate`)
+  - **Kinetic** : 动力学法 → :class:`SoftMaxPro_Plate_Kinetic` (返回 :class:`ContinuousSignal1DCollection`)
+  - **Spectrum** : 光谱扫描 → :class:`SoftMaxPro_Plate_Spectrum` (返回 :class:`ContinuousSignal1DCollection`)
+
+支持读板方式:
+  - Absorbance (吸光度)
+  - Fluorescence (荧光)
+  - Luminescence (发光)
+
+使用示例::
+
+    from instrumental_data_analyzer.instruments import SoftMaxPro_Project
+
+    project = SoftMaxPro_Project.read_txt("data.txt")
+    # 通过板名称访问
+    plate = project["Plate 1"]
+    # 动力学数据: 访问每个孔的曲线
+    curve = plate["A1"]
+    curve.plot_at(ax)
+"""
+
 import re, tempfile, warnings
 from io import StringIO
 from dataclasses import dataclass, field
@@ -488,7 +521,7 @@ class SoftMaxPro_Plate_Kinetic(ContinuousSignal1DCollection):
                 )
                 break
             time, temperature, plate_data = SoftMaxPro_Plate.parse_read(
-                read_text, wavelengths=metadata["wavelengths"]
+                read_text, metadata=metadata
             )
             seconds = time_to_seconds(time)
             data_raw["Time"].append(seconds)
@@ -797,6 +830,10 @@ class SoftMaxPro_Project:
 
         return cls(blocks=block_results)
 
+    @classmethod
+    def read_xls(cls, xls_file: str | Path):
+        return cls.read_txt(txt_file=xls_file)
+
     @property
     def metadata(self):
         return [block.metadata for block in self.blocks]
@@ -805,4 +842,8 @@ class SoftMaxPro_Project:
     def plate_name(self):
         return [metadata["plate_name"] for metadata in self.metadata]
 
-    read_xls = read_txt
+    def __getitem__(self, key: str):
+        for block in self.blocks:
+            if block.metadata["plate_name"] == key:
+                return block
+        raise KeyError(f"Plate {key} not found in this project.")

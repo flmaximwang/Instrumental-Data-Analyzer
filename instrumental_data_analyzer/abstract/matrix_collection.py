@@ -1,3 +1,17 @@
+"""
+``instrumental_data_analyzer.abstract.matrix_collection`` --- 矩阵序列
+======================================================================
+
+:class:`MatrixSeries` 是按照一个轴排列的多个矩阵的集合。
+
+例如: 在动力学实验中, 每个时间点读取一个多孔板,
+可以表示为 ``MatrixSeries``, 其中 ``data`` 列存储时间,
+``matrices`` 存储每个时间点的板数据。
+
+提供到 :class:`~instrumental_data_analyzer.abstract.signal_1d_collection.ContinuousSignal1DCollection`
+的便捷转换方法。
+"""
+
 import typing
 from dataclasses import dataclass, field
 import pandas as pd

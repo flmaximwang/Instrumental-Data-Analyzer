@@ -1,3 +1,17 @@
+"""
+``instruments.ThermoFisher.nanodrop_utils`` --- NanoDrop 辅助工具 (旧版)
+==========================================================================
+
+**注意**: 这是旧版 NanoDrop 数据处理工具。
+推荐使用 ``nanodrop2000`` 模块 (基于新抽象框架)。
+
+旧版包含:
+- :class:`Spectrum` : 光谱类 (手动 getter/setter)
+- :class:`Workbook` : 工作簿 (从 .tsv 读取多光谱)
+- :class:`BatchPlot` : 批量绘图工具
+- :class:`UnitConverter` : 单位转换
+"""
+
 import os
 import io
 import re

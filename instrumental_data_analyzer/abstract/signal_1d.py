@@ -1,3 +1,29 @@
+"""
+``instrumental_data_analyzer.abstract.signal_1d`` --- 一维信号
+================================================================
+
+该模块实现了 ``Signal`` 的一维子类层次, 包括:
+
+- :class:`Signal1D` : 基础一维信号, 具有 连续轴(axis) + 值(value)
+- :class:`ContinuousSignal1D_Base` : axis 和 value 都连续
+  - 支持通过 ``__getitem__`` 插值
+  - 支持算术运算 (+, -, *, /)
+  - 支持峰检测、积分、平均
+- :class:`ContinuousSignal1D_Process` : 信号处理 (平滑、去噪)
+- :class:`ContinuousSignal1D` : 最终具体的连续信号类
+- :class:`DiscreteSignal1D` : 连续轴 + 离散值
+- :class:`SegmentedSignal1D` : 分段信号 (带 Segment 列)
+- :class:`SegmentedContinuousSignal1D` : 分段连续信号
+- :class:`FractionSignal` : 馏分信号 (特殊的离散信号)
+
+辅助类:
+- :class:`_Interpolate` : 在一维数据上通过 ``np.interp`` 进行插值
+
+数据约定:
+  DataFrame 的第 0 列是 axis (连续), 第 1 列是 value,
+  第 2 列 (可选) 是 value_std (标准偏差).
+"""
+
 import typing
 from dataclasses import dataclass
 from pathlib import Path

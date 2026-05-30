@@ -1,3 +1,23 @@
+"""
+``instruments.CHI.chi660e`` --- CH Instruments CHI660E 电化学工作站数据解析
+============================================================================
+
+解析 CHI660E 电化学工作站导出的 .txt 文件。
+
+- :class:`chi660eEIS` : 电化学阻抗谱 (EIS) 解析
+  - ``from_exported_files`` : 从 .txt 文件列表导入
+
+- :class:`chi660eCV` : 循环伏安法 (CV) 解析
+  - 自动检测扫描方向, 分割扫描段 (Segment)
+  - ``from_exported_files`` : 从 .txt 文件列表导入
+
+使用示例::
+
+    from instrumental_data_analyzer.instruments import chi660eCV
+    cv = chi660eCV.from_exported_files(["cv1.txt", "cv2.txt"], name="My CV")
+    cv.plot()
+"""
+
 from ...concrete.voltammetry import *
 from ...concrete.impedance_spectroscopy import *
 from ...utils.name_utils import rename_duplicated_names

@@ -1,3 +1,34 @@
+"""
+``instrumental_data_analyzer.abstract.signal`` --- Signal 基类与描述注释系统
+==============================================================================
+
+该模块定义了整个库的两个核心抽象：
+
+1. **描述注释系统** --- 为每个数据维度附加物理含义
+
+   - :class:`DescAnno` : 名称 + 单位
+   - :class:`ContDescAnno` : + 连续范围(limit)、边距(margin)、自动刻度(ticks/ticklabels)
+   - :class:`DiscDescAnno` : + 离散刻度
+
+2. **Signal 基类** --- 所有数据类型的根
+
+   - 数据以 :class:`pandas.DataFrame` 形式存储
+   - 每一列通过 ``description_annotations`` 列表进行注释
+   - 提供 :meth:`Signal.from_csv` / :meth:`Signal.to_csv` 进行数据导入导出
+   - 提供 :meth:`Signal.rescale` 进行线性缩放
+
+数据在 :class:`~pandas.DataFrame` 中的组织方式:
+
+  ==========  ==========
+  Column 0    Column 1   (可选 Column 2 ...)
+  ==========  ==========
+  axis / x     value / y   value_std (optional)
+  ==========  ==========
+  第 0 列通常是连续轴 (如波长、时间、体积),
+  第 1 列是测量值 (如吸光度、电流),
+  第 2 列可选的标准偏差 (用于 :class:`~instrumental_data_analyzer.abstract.signal_1d.ContinuousSignal1D`).
+"""
+
 import os, re, time, warnings
 from dataclasses import dataclass, field
 from pathlib import Path

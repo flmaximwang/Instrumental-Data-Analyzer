@@ -1,3 +1,24 @@
+"""
+``instruments.GE_Heathcare.unicorn5`` --- GE Healthcare / Cytiva Unicorn 5 (ÄKTA) 数据解析
+============================================================================================
+
+解析 Unicorn 5 软件 (ÄKTA 纯化系统) 导出的色谱数据。
+
+支持两种文件格式:
+- **.xls** : 标准 Excel 导出 (sheet "Curves")
+- **.asc** : 文本格式导出 (ISO-8859-15 编码, tab 分隔)
+
+:class:`Unicorn5Chrom` 继承自 :class:`Chrom`, 解析后返回包含 UV、Cond、
+Conc B、pH、Fractions 等信号的色谱集合。
+
+使用示例::
+
+    from instrumental_data_analyzer.instruments import Unicorn5Chrom
+    chrom = Unicorn5Chrom.from_xls("run_001.xls")
+    chrom["UV"].plot_at(ax)
+    chrom["Cond"].plot_at(ax)
+"""
+
 import os, re
 from dataclasses import dataclass, field
 from copy import deepcopy

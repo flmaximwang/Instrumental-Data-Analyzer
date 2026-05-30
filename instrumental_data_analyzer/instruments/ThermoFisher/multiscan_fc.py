@@ -1,4 +1,23 @@
-from ...concrete import MultiWellPlate
+"""
+``instruments.ThermoFisher.multiscan_fc`` --- Thermo Fisher Multiskan FC 数据解析
+==================================================================================
+
+解析 Multiskan FC 酶标仪导出的 .txt 文件。
+
+:class:`MultiWellPlateFC` 继承自 :class:`MultiWellPlate`:
+- 在 .txt 文件中查找 1-12 列的标题行
+- 读取后续的 tab 分隔数据
+- 自动检测板型
+
+使用示例::
+
+    from instrumental_data_analyzer.instruments import MultiWellPlateFC
+
+    plate = MultiWellPlateFC.from_exported_file("plate_data.txt")
+    value = plate["A", 1]
+"""
+
+from ...concrete.multi_well_plates import MultiWellPlate
 import io
 import pandas as pd
 

@@ -1,3 +1,18 @@
+"""
+``instruments.Cytiva.unicorn_archive`` --- Unicorn 数据解析 (旧版)
+====================================================================
+
+**注意**: 这是基于旧框架的 Unicorn (ÄKTA) 数据解析器。
+推荐使用 ``instruments.GE_Heathcare.unicorn5`` 或 ``instruments.GE_Heathcare.unicorn7``
+模块中的新框架类。
+
+旧版包含:
+- :class:`UnicornData` : 读取 Unicorn 导出的 .txt 文件
+- :class:`UnicornChromtogram` : 单个色谱图, 信号以属性方式访问
+
+旧版使用手动属性赋值, 信号名称直接作为属性名 (如 ``chrom.UV``, ``chrom.Cond``)。
+"""
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt

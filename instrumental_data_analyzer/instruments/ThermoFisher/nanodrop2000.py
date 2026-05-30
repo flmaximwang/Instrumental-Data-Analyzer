@@ -1,3 +1,24 @@
+"""
+``instruments.ThermoFisher.nanodrop2000`` --- Thermo Fisher NanoDrop 2000 数据解析
+====================================================================================
+
+解析 NanoDrop 2000 分光光度计导出的 .tsv 文件。
+
+:class:`Nanodrop2000Workbook` 继承自 :class:`AbsorbSpecCollection`:
+- 自动将 .tsv 文件按双换行分割为多个光谱
+- 每个光谱包含样品名和时间戳
+- 支持去除时间戳重复名称
+- 支持自动设置 UV-Vis 或 Protein A280 模式的坐标轴范围
+
+使用示例::
+
+    from instrumental_data_analyzer.instruments import Nanodrop2000Workbook
+
+    wb = Nanodrop2000Workbook.from_tsv("spectra.tsv")
+    wb.set_default_annotations(mode="UV-Vis")
+    fig, ax = wb.plot()
+"""
+
 import io
 from dataclasses import dataclass, field
 from pathlib import Path
