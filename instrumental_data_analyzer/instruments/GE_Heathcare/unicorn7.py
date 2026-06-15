@@ -74,7 +74,7 @@ class Unicorn7Chrom(Chrom):
                         re.match(pattern, signal_name)
                         for pattern in [
                             "UV",
-                            "UV \d_\d{3}",
+                            "UV \\d_\\d{3}",
                             "Cond",
                             "Conc B",
                             "UV_CUT_TEMP@100,BASEM",
@@ -89,6 +89,8 @@ class Unicorn7Chrom(Chrom):
                 ):
                     # 设置 signal_data 的 2 列为 float
                     signal_data = signal_data.astype(float).dropna()
+                    if signal_data.empty:
+                        continue
                     signal = ChromSig.from_data(
                         data=signal_data,
                         axis_name="Volume",
@@ -103,6 +105,8 @@ class Unicorn7Chrom(Chrom):
                     signal_data = signal_data.astype(
                         {signal_data.columns[0]: float, signal_data.columns[1]: str}
                     ).dropna()
+                    if signal_data.empty:
+                        continue
                     signals.append(
                         ChromLog.from_data(
                             data=signal_data,
@@ -115,6 +119,8 @@ class Unicorn7Chrom(Chrom):
                     )
                 else:
                     raise Exception(f"Unknown signal type: {raw_data.iloc[1, 2*n]}")
+            if not signals:
+                continue  # skip chromatograms with no signals
             chromatograms.append(Chrom.from_similar_signals(signals=signals))
             chromatograms[-1].name = f"{chrom_name}_{i}"
 

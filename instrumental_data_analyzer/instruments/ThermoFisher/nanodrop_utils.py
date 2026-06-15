@@ -18,7 +18,6 @@ import re
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib import cm
 import scipy.stats as st
 from scipy.optimize import curve_fit
 
@@ -207,7 +206,7 @@ class BatchPlot:
         return fig, res_axes
 
     @staticmethod
-    def draw_spectrums_together(input_list: list[pd.DataFrame] or list[str], figsize, xlim, ylim, pallette = cm.get_cmap("viridis"), xlabel = True, ylabel = True, label_list = []):
+    def draw_spectrums_together(input_list: list[pd.DataFrame] or list[str], figsize, xlim, ylim, pallette = plt.get_cmap("viridis"), xlabel = True, ylabel = True, label_list = []):
         '''
         将所有的光谱绘制在一张图上
         '''

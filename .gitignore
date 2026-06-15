@@ -1,9 +1,8 @@
 # Project files
 .env
 conda-env
-tests
-test
-data
+tests/data
+tests/out
 playground
 
 # Python Cache

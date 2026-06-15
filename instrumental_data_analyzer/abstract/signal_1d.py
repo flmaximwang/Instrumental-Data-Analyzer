@@ -314,13 +314,13 @@ class ContinuousSignal1D_Base(Signal1D):
             ContDescAnno(
                 name=axis_name,
                 unit=axis_unit,
-                limit=(min(data.iloc[:, 0]), max(data.iloc[:, 0])),
+                limit=(min(data.iloc[:, 0]), max(data.iloc[:, 0])) if len(data) > 0 else (0, 1),
                 margin=(0, 1),
             ),
             ContDescAnno(
                 name=value_name,
                 unit=value_unit,
-                limit=(min(data.iloc[:, 1]), max(data.iloc[:, 1])),
+                limit=(min(data.iloc[:, 1]), max(data.iloc[:, 1])) if len(data) > 0 else (0, 1),
                 margin=(0, 1),
             ),
         ]
@@ -853,7 +853,7 @@ class DiscreteSignal1D(Signal1D):
             ContDescAnno(
                 name=axis_name,
                 unit=axis_unit,
-                limit=(min(data.iloc[:, 0]), max(data.iloc[:, 0])),
+                limit=(min(data.iloc[:, 0]), max(data.iloc[:, 0])) if len(data) > 0 else (0, 1),
                 margin=(0, 1),
             ),
             DescAnno(
