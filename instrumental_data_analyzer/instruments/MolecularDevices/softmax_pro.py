@@ -511,10 +511,11 @@ class SoftMaxPro_Plate_Kinetic(ContinuousSignal1DCollection):
             read_text = ""
             for j in range(row_num):
                 # Read text row by row
-                read_text += textIO.readline()
-                if len(read_text) == 0:
+                line = textIO.readline()
+                if not line:
                     early_terminated = True
                     break
+                read_text += line
             if early_terminated:
                 warnings.warn(
                     f"Plate {metadata['plate_name']} contains less data points than expected, which indicates an interrupted experiment."
@@ -581,12 +582,25 @@ class SoftMaxPro_Plate_Kinetic(ContinuousSignal1DCollection):
 
     @classmethod
     def _parse_read(cls, text: str, metadata: dict):
-        time, temperature, plate_data, plate_shape = SoftMaxPro_Plate.read_text_to_data(
+        time, temperature, plate_data, _ = SoftMaxPro_Plate.read_text_to_data(
             text
         )
         wavelengths = metadata["wavelengths"]
-        columns_to_drop = [plate_data.columns[i] for i in range(len(wavelengths) - 1)]
-        plate_data = plate_data.drop(columns=plate_data.columns[columns_to_drop])
+        plate_well_num = metadata["plate_well_num"]
+        cols_per_wavelength = len(PLATE_COL_NAMES[plate_well_num])
+
+        # Drop separator columns between adjacent wavelength blocks.
+        if len(wavelengths) > 1:
+            separator_indices = [
+                k * cols_per_wavelength + (k - 1)
+                for k in range(1, len(wavelengths))
+            ]
+            separator_col_names = [
+                plate_data.columns[i] for i in separator_indices
+            ]
+            plate_data = plate_data.drop(columns=separator_col_names)
+
+        plate_shape = plate_data.shape
 
         expected_col_num = {
             6: (2, 3 * len(wavelengths)),
@@ -816,10 +830,9 @@ class SoftMaxPro_Project:
                 block = StringIO()
                 while True:
                     line = f.readline()
-                    if line != "~End\n":
-                        block.write(line)
-                    else:
+                    if not line or line.startswith("~End"):
                         break
+                    block.write(line)
                 blocks.append(block)
             project_metadata = f.readline().strip()
 

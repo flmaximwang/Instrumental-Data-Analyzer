@@ -52,7 +52,7 @@ class chi660eEIS:
         """
         my_data_list = []
         if isinstance(txt_paths, list):
-            path_list = (txt_paths,)
+            path_list = txt_paths
             name_list = [os.path.basename(txt_path) for txt_path in txt_paths]
         elif isinstance(txt_paths, dict):
             path_list = list(txt_paths.keys())

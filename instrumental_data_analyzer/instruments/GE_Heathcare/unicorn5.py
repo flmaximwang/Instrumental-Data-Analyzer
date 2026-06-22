@@ -67,7 +67,7 @@ class Unicorn5Chrom(Chrom):
                 ]
             ):
                 signal_data = signal_data.astype(float)
-                signal = ChromSig(
+                signal = ChromSig.from_data(
                     data=signal_data,
                     name=signal_name,
                     axis_name="Volume",
@@ -81,7 +81,7 @@ class Unicorn5Chrom(Chrom):
                     {signal_data.columns[0]: float, signal_data.columns[1]: str}
                 )
                 signals.append(
-                    ChromLog(
+                    ChromLog.from_data(
                         data=signal_data,
                         name=signal_name,
                         axis_name="Volume",
@@ -147,7 +147,13 @@ class Unicorn5Chrom(Chrom):
         ):
             signals: list[Signal1D] = []
             for j, signal_annotation in enumerate(signal_annotations):
-                row_selector = data.iloc[:, 2 * j].apply(lambda x: len(x.split()) != 0)
+                row_selector = data.iloc[:, 2 * j].apply(
+                    lambda x: (
+                        len(x.split()) != 0
+                        if isinstance(x, str)
+                        else not pd.isna(x)
+                    )
+                )
                 signal_data = data[row_selector].iloc[:, [2 * j, 2 * j + 1]]
                 signal_name = signal_annotation["value_name"]
                 if any(

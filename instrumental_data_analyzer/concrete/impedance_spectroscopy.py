@@ -62,9 +62,9 @@ class ImpedanceSpectrum(Signal):
             Z,
             ax=ax,
             fmt=self.fmt,
-            label=self.get_name(),
+            label=self.name,
             labelsize=14,
-            units=self.get_description_annotations_by_index(1).unit,
+            units=self.description_annotations[1].unit,
             color=color,
             scale=scale,
         )
@@ -77,9 +77,9 @@ class ImpedanceSpectrum(Signal):
             Z,
             axes=axes,
             fmt=self.fmt,
-            label=self.get_name(),
+            label=self.name,
             labelsize=14,
-            units=self.get_description_annotations_by_index(1).unit,
+            units=self.description_annotations[1].unit,
             color=color,
         )
 
@@ -107,7 +107,7 @@ class ImpedanceSpectrumCollection(SignalCollection):
         else:
             fig, ax = plt.subplots(1, 1, figsize=self.figsize)
 
-        for i, sig_name in enumerate(self):
+        for i, sig_name in enumerate(self.signal_names):
             sig: ImpedanceSpectrum = self[sig_name]
             if isinstance(self.colormap, str):
                 if self.colormap == "default":
@@ -130,7 +130,7 @@ class ImpedanceSpectrumCollection(SignalCollection):
         if imag_limit:
             ax.set_ylim(imag_limit)
         ax.legend()
-        ax.set_title(self.get_name())
+        ax.set_title(self.name)
 
         return fig, ax
 
@@ -148,7 +148,7 @@ class ImpedanceSpectrumCollection(SignalCollection):
             else:
                 fig, axes = plt.subplots(2, 1, figsize=self.figsize)
 
-        for i, sig_name in enumerate(self):
+        for i, sig_name in enumerate(self.signal_names):
             sig: ImpedanceSpectrum = self[sig_name]
             if isinstance(self.colormap, str):
                 if self.colormap == "default":
@@ -174,6 +174,6 @@ class ImpedanceSpectrumCollection(SignalCollection):
             axes[1].set_ylim(phase_limit)
         axes[0].legend()
         axes[1].legend()
-        axes[0].set_title(self.get_name())
+        axes[0].set_title(self.name)
 
         return fig, axes

@@ -96,7 +96,7 @@ class Signal1D(Signal):
 
     @axis.setter
     def axis(self, new_axis):
-        self.data.iloc[:, 0] = new_axis
+        self.data[self.data.columns[0]] = new_axis.astype(float)
 
     @property
     def axis_annotation(self):
@@ -122,7 +122,7 @@ class Signal1D(Signal):
 
     @value.setter
     def value(self, new_value):
-        self.data.iloc[:, 1] = new_value
+        self.data[self.data.columns[1]] = new_value
 
     @classmethod
     def from_data(
@@ -262,6 +262,18 @@ class ContinuousSignal1D_Base(Signal1D):
     @value_limit.setter
     def value_limit(self, new_value_limit):
         self.value_annotation.limit = new_value_limit
+
+    def get_value_limit(self):
+        return self.value_limit
+
+    def get_value_margin(self):
+        return self.value_margin
+
+    def get_axis_limit(self):
+        return self.axis_annotation.limit
+
+    def get_axis_margin(self):
+        return self.axis_annotation.margin
 
     @property
     def value_margin(self):
@@ -572,6 +584,8 @@ class ContinuousSignal1D_Base(Signal1D):
         kwargs_for_annotate.pop("color", None)
         kwargs_for_Line2D.pop("fontsize", None)
         kwargs_for_Line2D.pop("rotation", None)
+        kwargs_for_Line2D.pop("mode", None)
+        kwargs_for_annotate.pop("mode", None)
 
         assert self.axis_annotation.limit is not None, "Axis limit is not set"
         assert self.axis_annotation.margin is not None, "Axis margin is not set"
@@ -951,6 +965,9 @@ class DiscreteSignal1D(Signal1D):
         kwargs_for_Line2D = kwargs.copy()
         kwargs_for_Line2D.pop("rotation", None)
         kwargs_for_Line2D.pop("fontsize", None)
+        kwargs_for_Line2D.pop("mode", None)
+
+        kwargs_for_annotate.pop("mode", None)
         axis_to_plot = transform_utils.rescale_to_0_1(
             self.axis, self.axis_annotation.limit[0], self.axis_annotation.limit[1]
         )
@@ -1189,6 +1206,7 @@ class SegmentedContinuousSignal1D(SegmentedSignal1D, ContinuousSignal1D):
 
         kwargs_for_Line2D.pop("fontsize", None)
         kwargs_for_Line2D.pop("rotation", None)
+        kwargs_for_Line2D.pop("mode", None)
 
         (handle,) = ax.plot(
             self.rescale(

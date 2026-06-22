@@ -310,7 +310,7 @@ class MultiWellPlate(Matrix):
             / result.slope**4
             * result.stderr**2
         )
-        print(result_table.to_markdown())
+        print(result_table.to_string())
 
         return fig, ax, result, result_table
 

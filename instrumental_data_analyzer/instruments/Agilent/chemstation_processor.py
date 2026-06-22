@@ -26,6 +26,7 @@ from instrumental_data_analyzer.abstract.signal_1d import (
     FractionSignal,
     Signal1D,
 )
+from instrumental_data_analyzer.abstract.signal import ContDescAnno, DescAnno
 from instrumental_data_analyzer.abstract.signal_1d_collection import Signal1DCollection
 from instrumental_data_analyzer.utils import path_utils
 
@@ -53,7 +54,7 @@ class ChemStSig(ContinuousSignal1D):
             file_path, header=None, encoding="utf-16 LE", sep="\t"
         )
         value_name = path_utils.get_name_from_path(file_path)
-        signal = ChemStSig(
+        signal = ChemStSig.from_data(
             data=signal_data,
             name=value_name,
             axis_name="Time",
@@ -91,7 +92,7 @@ class ChemStFrac(FractionSignal):
             )
             row2 = pd.DataFrame({"Time (min)": [fraction["End"]], "Fraction": "waste"})
             signal_data = pd.concat([signal_data, row1, row2], ignore_index=True)
-        signal = ChemStFrac(
+        signal = ChemStFrac.from_data(
             data=signal_data,
             name="Fraction",
             axis_name="Time",
@@ -139,3 +140,10 @@ class ChemStChrom(Signal1DCollection):
 
     def __init__(self, signals, name="Default ChemStation Chromatogram"):
         super().__init__(signals, name=name)
+        if self.description_annotations is None:
+            self.description_annotations = [
+                ContDescAnno(name="Time", unit="min"),
+                DescAnno(name="Absorbance", unit="mAU"),
+            ]
+        if self.visible_signal_names is None:
+            self.visible_signal_names = [s.name for s in self.signals]

@@ -165,7 +165,30 @@ collection.set_default_annotations()
 fig, ax = collection.plot()  # 模式 0: 单图多线
 ```
 
-## 仪器数据导入示例
+## 使用示例
+
+完整的使用示例见 `examples/` 目录，每个仪器都包含可运行的示例脚本：
+
+| 仪器 | 目录 | 数据来源 |
+|------|------|---------|
+| **NanoDrop 2000** (Protein A280) | `examples/nanodrop2000_protein-a280/` | 实测 TSV 数据 |
+| **ChemStation HPLC** | `examples/chemstation_hplc/` | 实测 CSV 数据 (5 波长 + 馏分) |
+| **ÄKTA / Unicorn 5** | `examples/unicorn5_xls/` | 合成 ASC 数据 (UV, Cond, pH, Conc) |
+| **ÄKTA / Unicorn 7** | `examples/unicorn7_txt/` | 实测 TXT 数据 |
+| **SoftMax Pro** (Spectrum) | `examples/softmax_pro_spectrum/` | 实测 TXT 数据 (96 孔光谱) |
+| **SoftMax Pro** (Kinetics) | `examples/softmax_pro_kinetics/` | 实测 TXT 数据 (96 孔动力学，6 波长，蛋白-Hemin 结合) |
+| **CHI660E** (CV) | `examples/chi660e_cv/` | 合成铁氰化物 CV 数据 |
+| **CHI660E** (EIS) | `examples/chi660e_eis/` | 合成 Randles 电路 EIS 数据 |
+| **Multiskan FC** | `examples/multiscan_fc/` | 合成 96 孔板数据 (BSA 标准曲线) |
+
+运行示例：
+
+```bash
+cd examples/chemstation_hplc
+python example.py
+```
+
+每项运行完成后会在同目录生成 `example.png`（动力学示例生成 `example_soret.png` 和 `example_visible.png`），展示数据可视化结果。
 
 ### Agilent ChemStation
 

@@ -55,6 +55,7 @@ class Voltammegram(SegmentedContinuousSignal1D):
             name=name,
             description_annotations=[axis_anno, value_anno],
         )
+        self.active_segments = "all"
 
     def get_current_limit(self):
         return self.get_axis_limit()
