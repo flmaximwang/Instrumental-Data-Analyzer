@@ -319,6 +319,13 @@ Signal (dataclass)          — Base: .data (pd.DataFrame), .name, .description_
 - Some modules have `archive` suffix (legacy code) vs processor suffix (new code)
 - `GE_Heathcare/` directory has a typo (should be `Healthcare`) — maintained for compatibility
 
+### Git 提交规则
+
+- **禁止提交原始数据文件**（如 `.txt`, `.csv`, `.tsv`, `.xls`, `.asc` 等仪器导出文件），仅允许提交代码
+- **禁止提交生成的图片文件**（如 `.png`, `.jpg` 等），除非该图片是文档必需的示意图且体积 ≤ 100KB
+- `examples/` 中的示例数据文件（如 `example.txt`, `example.png`）禁止提交——示例应使用小型合成数据或通过代码动态生成
+- 测试数据统一放在 `tests/data/` 中，且仅提交极小型文件（≤ 50KB）；大型测试数据应由 CI 或外部存储管理
+
 ## 许可
 
 本项目基于 [LICENSE](LICENSE) 文件中的许可条款发布。
