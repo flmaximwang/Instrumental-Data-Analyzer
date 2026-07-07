@@ -124,7 +124,10 @@ class ContDescAnno(DescAnno):
         assert self.margin is not None, "margin is not set"
 
         ticklabels = np.array(list(map(float, self.ticklabels)))
-        ticks = (ticklabels - self.limit[0]) / (self.limit[1] - self.limit[0]) * (
+        limit_range = self.limit[1] - self.limit[0]
+        if limit_range == 0:
+            return np.full_like(ticklabels, (self.margin[0] + self.margin[1]) / 2)
+        ticks = (ticklabels - self.limit[0]) / limit_range * (
             self.margin[1] - self.margin[0]
         ) + self.margin[0]
         return ticks
