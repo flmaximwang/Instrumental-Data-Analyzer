@@ -45,10 +45,9 @@ def extract_number_from_chrom(chrom_string):
         return None
 
 
-class Unicorn7Chrom(Chrom):
+class Unicorn7Project:
 
-    @staticmethod
-    def from_txt(txt: str | Path, name=None):
+    def read_txt(txt: str | Path, name=None):
         raw_data = pd.read_csv(
             txt, sep="\t", encoding="UTF-16 LE", header=None, na_values=""
         )  # 空字符串不识别为 NaN

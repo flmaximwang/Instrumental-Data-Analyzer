@@ -32,7 +32,7 @@ from ..abstract import (
 @dataclass
 class ChromPlotArgs(Signal1DPlotArgs):
 
-    figsize: tuple[float, float] = (20, 6)
+    ax_size: tuple[float, float] | None = (16, 5)
     mode: int = 1
 
 

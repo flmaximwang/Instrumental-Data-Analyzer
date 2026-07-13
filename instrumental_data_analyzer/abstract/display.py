@@ -27,8 +27,12 @@ class SignalPlotArgs:
 
     Properties
     ----------
-    figsize: tuple[float, float] | None
-        The size of the figure. If None, the default size will be used.
+    ax_size: tuple[float, float] | None
+        The size (width, height) of the Axes data area (between spines) in inches.
+        When set, the Figure is sized to accommodate ax_size plus margins for
+        labels, legend, and title, and the Axes position is set explicitly so
+        the data area is identical across plots regardless of legend width.
+        When None, matplotlib's default sizing is used.
     axis_shift: float | None
         The shift in mode 1
     colormap: str
@@ -41,7 +45,7 @@ class SignalPlotArgs:
 
     mode = 0
     axis_shift = 0.2
-    figsize: tuple[float, float] = None
+    ax_size: tuple[float, float] | None = None
     _cmap: Colormap = None
     cmap_limit: tuple[float, float] = (0, 1)
     legend_cols: int = 1

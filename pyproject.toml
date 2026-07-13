@@ -20,3 +20,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

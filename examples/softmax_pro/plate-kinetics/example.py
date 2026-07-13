@@ -41,12 +41,12 @@ if __name__ == "__main__":
 
     plate.axis_annotation.unit = "min"
     plate.set_default_annotations()
-    plate.axis_annotation.ticklabel_space = 60
+    plate.axis_annotation.ticklabel_space_major = 60
 
     # ===== Soret 带（398, 408, 418 nm）=====
     plate.visible_signal_names = ["398", "408", "418"]
     plate.align_values(plate.visible_signal_names, 1.1, 1.61)
-    plate.value_annotation.ticklabel_space = 0.1
+    plate.value_annotation.ticklabel_space_major = 0.1
     fig, ax = plate.plot()
     fig.tight_layout()
     soret_path = os.path.join(os.path.dirname(__file__), "example_soret.png")
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     # ===== 可见光区（530, 563, 740 nm）=====
     plate.visible_signal_names = ["530", "563", "740"]
     plate.align_values(plate.visible_signal_names, 0.1, 0.35)
-    plate.value_annotation.ticklabel_space = 0.05
+    plate.value_annotation.ticklabel_space_major = 0.05
     fig, ax = plate.plot()
     fig.tight_layout()
     ir_path = os.path.join(os.path.dirname(__file__), "example_visible.png")
