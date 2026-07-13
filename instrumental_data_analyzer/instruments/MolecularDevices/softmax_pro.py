@@ -648,7 +648,7 @@ class SoftMaxPro_Plate_Kinetic(ContinuousSignal1DCollection):
                         limit[1] = signal.value_annotation.limit[1]
         self.value_annotation.limit = limit
         self.align_values(self.signal_names, limit[0], limit[1])
-        self.value_annotation.ticklabel_space = (limit[1] - limit[0]) / 9
+        self.value_annotation.ticklabel_space_major = (limit[1] - limit[0]) / 9
 
 
 @dataclass
@@ -860,3 +860,162 @@ class SoftMaxPro_Project:
             if block.metadata["plate_name"] == key:
                 return block
         raise KeyError(f"Plate {key} not found in this project.")
+
+
+class SoftMaxPro_CuvetteData(ContinuousSignal1D):
+    """
+    解析 SoftMax Pro 比色皿 (Cuvette) 数据。
+
+    支持 SoftMax Pro 导出的多 section 格式（由空行分隔）：
+      - Raw 数据（section name = "Wavelength"）
+      - Ref 数据（section name = "Ref"）
+      - Raw-Ref 数据（section name = "Raw-Ref"）
+
+    示例::
+
+        from instrumental_data_analyzer.instruments.MolecularDevices.softmax_pro import (
+            SoftMaxPro_CuvetteData,
+        )
+
+        # 默认返回 Raw-Ref (OD)
+        curve = SoftMaxPro_CuvetteData.from_clipboard(txt="data.txt")
+
+        # 指定 mode = Transmission
+        curve = SoftMaxPro_CuvetteData.from_clipboard(txt="data.txt", mode="Transmission")
+
+        # 读取 Ref 段
+        ref = SoftMaxPro_CuvetteData.from_clipboard(txt="data.txt", section="Ref")
+    """
+
+    _MODE_MAP = {
+        "OD": ("Absorbance (OD)", "cm⁻¹"),
+        "Transmission": ("Transmission", "%"),
+    }
+
+    _extra_metadata: dict = field(default_factory=dict)
+
+    @classmethod
+    def from_clipboard(
+        cls,
+        txt: str | Path = None,
+        text: str | None = None,
+        section: str = "Raw-Ref",
+        mode: str = "OD",
+    ) -> "SoftMaxPro_CuvetteData":
+        """
+        从 SoftMax Pro 导出的比色皿数据中解析指定的 section。
+
+        Parameters
+        ----------
+        txt: str | Path, optional
+            文件路径（尝试 UTF-8 读取）。
+        text: str, optional
+            直接传入的文本内容（例如从剪贴板粘贴的内容）。
+        section: str, default="Raw-Ref"
+            要返回的 section 名称：
+              - ``"Wavelength"``  — 原始测量数据
+              - ``"Ref"``         — 参比数据
+              - ``"Raw-Ref"``     — 扣背景后的结果数据
+        mode: str, default="OD"
+            数据类型：
+              - ``"OD"``           — 吸光度 (cm⁻¹)
+              - ``"Transmission"`` — 透光率 (%)
+
+        Returns
+        -------
+        SoftMaxPro_CuvetteData
+            一个 ContinuousSignal1D 对象，axis=Wavelength (nm),
+            value 根据 mode 确定。
+        """
+        if txt is not None:
+            txt_path = Path(txt)
+            try:
+                text = txt_path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                text = txt_path.read_text(encoding="utf-16-le")
+        elif text is None:
+            raise ValueError("Either 'txt' or 'text' must be provided.")
+
+        if mode not in cls._MODE_MAP:
+            raise ValueError(
+                f"Unsupported mode '{mode}'. Supported modes: {list(cls._MODE_MAP.keys())}"
+            )
+
+        # --- 按空行分割 section ---
+        lines = text.splitlines()
+        sections: dict[str, list[str]] = {}
+        current_name: str | None = None
+        current_lines: list[str] = []
+
+        for line in lines:
+            stripped = line.rstrip("\n\r")
+            if stripped == "":
+                if current_name is not None and current_lines:
+                    sections[current_name] = current_lines
+                    current_name = None
+                    current_lines = []
+                continue
+            if current_name is None:
+                # 首行为 header → 第一列是 section 名称
+                header_parts = stripped.split("\t")
+                # 兼容 blank-separated header: 有些导出格式可能有额外空格
+                current_name = header_parts[0].strip()
+                current_lines = [stripped]
+            else:
+                current_lines.append(stripped)
+
+        # 收尾最后一个 section
+        if current_name is not None and current_lines:
+            sections[current_name] = current_lines
+
+        if section not in sections:
+            available = list(sections.keys())
+            raise KeyError(
+                f"Section '{section}' not found. "
+                f"Available sections: {available}"
+            )
+
+        # --- 解析目标 section ---
+        section_text = "\n".join(sections[section])
+        data = pd.read_csv(StringIO(section_text), sep="\t")
+
+        axis_col = data.columns[0]  # Wavelength (nm) or section name as placeholder
+        sample_col = data.columns[2]  # 第三列是样本名对应的测量值
+
+        axis_values = data[axis_col].astype(float).values
+        value_values = data[sample_col].astype(float).values
+
+        # Temperature 作为 metadata
+        temperature_str = str(data.iloc[0, 1])
+        try:
+            temperature = float(temperature_str.replace("¡C", "").replace("°C", "").strip())
+        except (ValueError, AttributeError):
+            temperature = None
+
+        value_name, value_unit = cls._MODE_MAP[mode]
+
+        # 构建两列 DataFrame
+        result_df = pd.DataFrame(
+            {
+                "Wavelength": axis_values,
+                sample_col: value_values,
+            }
+        )
+
+        result = cls.from_data(
+            data=result_df,
+            axis_name="Wavelength",
+            axis_unit="nm",
+            value_name=value_name,
+            value_unit=value_unit,
+            name=f"{section} ({sample_col})",
+        )
+
+        # 额外 metadata
+        result._extra_metadata = {
+            "section": section,
+            "sample_name": sample_col,
+            "temperature": temperature,
+            "mode": mode,
+        }
+        return result

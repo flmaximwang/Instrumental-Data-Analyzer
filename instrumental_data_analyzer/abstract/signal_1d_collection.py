@@ -138,13 +138,91 @@ class Signal1DCollection(SignalCollection):
         result.name = folder.name
         return result
 
+    # ==================== Fixed-size Axes helper ====================
+
+    # Margins (inches) around the data area — used when ax_size is set.
+    _MARGIN_LEFT = 0.75       # ylabel + yticks
+    _MARGIN_RIGHT = 2.5       # outside legend
+    _MARGIN_BOTTOM = 0.6      # xlabel + xticks
+    _MARGIN_TOP = 0.4         # title
+
+    def _make_axes(self, nrows=1, ncols=1, *, margin_right=None):
+        """
+        Create a Figure and Axes with a fixed data-area size (*ax_size*).
+
+        When ``self.plot_args.ax_size`` is set, the Axes data area (between
+        spines, not including labels, ticks, or legend) is exactly *ax_size*
+        inches.  The Figure is sized to accommodate the data area plus margins
+        (class constants ``_MARGIN_*``), and the Axes position is set
+        explicitly — **tight_layout is NOT called**, so the data area
+        dimensions are guaranteed identical across plots regardless of legend
+        width or tick-label length.
+
+        When ``ax_size`` is ``None``, falls back to :func:`plt.subplots` with
+        default sizing (backward-compatible).
+
+        Parameters
+        ----------
+        nrows, ncols : int
+            Grid dimensions.
+        margin_right : float or None
+            Override the right-margin default.  Used by mode 1 (twin axes).
+
+        Returns
+        -------
+        ``(fig, ax)`` for 1\N{MULTIPLICATION SIGN}1,
+        ``(fig, axes_2d)`` for larger grids.
+        ``axes_2d`` is ``list[list[plt.Axes]]``.
+        """
+        ax_size = self.plot_args.ax_size
+        if ax_size is None:
+            fig, a = plt.subplots(nrows, ncols)
+            if nrows == 1 and ncols == 1:
+                return fig, a
+            # Normalise to list[list[Axes]]
+            if nrows == 1:
+                return fig, [list(a)]
+            if ncols == 1:
+                return fig, [[ax] for ax in a]
+            return fig, a.tolist()
+
+        # ---- fixed-size layout ------------------------------------------------
+        ml = self._MARGIN_LEFT
+        mr = margin_right if margin_right is not None else self._MARGIN_RIGHT
+        mb = self._MARGIN_BOTTOM
+        mt = self._MARGIN_TOP
+
+        fig_w = ax_size[0] * ncols + ml + mr
+        fig_h = ax_size[1] * nrows + mb + mt
+
+        fig = plt.figure(figsize=(fig_w, fig_h))
+
+        axes_2d = []
+        for row in range(nrows):
+            row_axes = []
+            for col in range(ncols):
+                left = (ml + col * ax_size[0]) / fig_w
+                bottom = (mb + (nrows - 1 - row) * ax_size[1]) / fig_h
+                row_axes.append(
+                    fig.add_axes((
+                        left,
+                        bottom,
+                        ax_size[0] / fig_w,
+                        ax_size[1] / fig_h,
+                    ))
+                )
+            axes_2d.append(row_axes)
+
+        if nrows == 1 and ncols == 1:
+            return fig, axes_2d[0][0]
+        return fig, axes_2d
+
     def plot_with_collection_annotations(self, **kwargs):
 
-        figsize = self.plot_args.figsize
-
-        ax: plt.Axes
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
+        fig, ax = self._make_axes(1, 1)
         self.plot_with_collection_annotations_at(ax, **kwargs)
+        if self.plot_args.ax_size is None:
+            fig.tight_layout()
 
         return fig, ax
 
@@ -194,6 +272,9 @@ class Signal1DCollection(SignalCollection):
         xticklabels = self.axis_annotation.ticklabels
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticklabels)
+        minor_xticks = self.axis_annotation.ticks_minor
+        if minor_xticks is not None and len(minor_xticks) > 0:
+            ax.set_xticks(minor_xticks, minor=True)
         if isinstance(self.value_annotation, ContDescAnno):
             yticks = self.value_annotation.ticks
             yticklabels = self.value_annotation.ticklabels
@@ -213,8 +294,23 @@ class Signal1DCollection(SignalCollection):
         ax.set_title(self.name)
 
     def plot_with_all_annotations(self, axis_shift, **kwargs):
-        ax: plt.Axes
-        fig, ax = plt.subplots(1, 1, figsize=self.plot_args.figsize)
+        # Count twin axes to size the right margin properly
+        n_twins = sum(
+            1 for i, name in enumerate(self.visible_signal_names)
+            if i > 0 and isinstance(self[name], ContinuousSignal1D)
+        )
+        ax_size = self.plot_args.ax_size
+        if ax_size is not None:
+            # Each twin spine sits at (axes, 1 + axis_shift * i); add space
+            # for the spine offset + its label.
+            margin_right = max(
+                self._MARGIN_RIGHT,
+                0.7 + axis_shift * n_twins * ax_size[0],
+            )
+        else:
+            margin_right = self._MARGIN_RIGHT
+
+        fig, ax = self._make_axes(1, 1, margin_right=margin_right)
         twins: list[plt.Axes] = []
         handles: list[plt.Line2D] = []
         counter = 0
@@ -252,15 +348,18 @@ class Signal1DCollection(SignalCollection):
         ax.set_xlabel(self.axis_annotation.label)
         ax.set_xticks(self.axis_annotation.ticks)
         ax.set_xticklabels(self.axis_annotation.ticklabels)
+        minor_xticks = self.axis_annotation.ticks_minor
+        if minor_xticks is not None and len(minor_xticks) > 0:
+            ax.set_xticks(minor_xticks, minor=True)
         ax.set_xlim(0, 1)
         ax.legend(handles=handles)
         ax.set_title(self.name)
-        fig.tight_layout()
-        # 避免右侧额外的坐标轴跑到画布以外
-        fig.subplots_adjust(right=1 - axis_shift * counter)
+        if self.plot_args.ax_size is None:
+            fig.tight_layout()
+            fig.subplots_adjust(right=1 - axis_shift * counter)
         return fig, [ax] + twins
 
-    def plot_separately(self, **kwargs) -> tuple[plt.Figure, list[plt.Axes]]:
+    def plot_separately(self, **kwargs) -> tuple[plt.Figure, list[list[plt.Axes]]]:
         row_num = kwargs.pop("row", 0)
         col_num = kwargs.pop("col", 0)
         if row_num == 0 and col_num == 0:
@@ -295,38 +394,33 @@ class Signal1DCollection(SignalCollection):
                 f"{row_num} rows and {col_num} columns are not enough to plot {len(self.visible_signal_names)} signals."
             )
 
-        if row_num == 1 and col_num == 1:
-            fig, ax = self.subplots(1, 1)
-            axes = [[ax]]
-        elif row_num == 1:
-            fig, axes = self.subplots(1, col_num)
-            axes = [axes]
-        elif col_num == 1:
-            fig, axes = self.subplots(row_num, 1)
-            axes = [[ax] for ax in axes]
-        else:
-            fig, axes = self.subplots(row_num, col_num)
+        fig, axes = self._make_axes(row_num, col_num)
 
         for i, signal_name in enumerate(self.visible_signal_names):
-            signal = self.signals[signal_name]
+            signal = self[signal_name]
             row_index = i // col_num
             col_index = i % col_num
             signal.plot_at(axes[row_index][col_index], **kwargs)
             axes[row_index][col_index].set_title(signal_name)
-            axes[row_index][col_index].set_xlabel(self.get_axis_label())
-            axes[row_index][col_index].set_ylabel(signal.get_value_label())
-            xticks, xticklabels = signal.get_axis_ticks(), signal.get_axis_ticklabels()
+            axes[row_index][col_index].set_xlabel(self.axis_annotation.label)
+            axes[row_index][col_index].set_ylabel(signal.value_annotation.label)
+            xticks, xticklabels = (signal.axis_annotation.ticks,
+                                   signal.axis_annotation.ticklabels)
             axes[row_index][col_index].set_xticks(xticks)
             axes[row_index][col_index].set_xticklabels(xticklabels)
+            minor_xticks = signal.axis_annotation.ticks_minor
+            if minor_xticks is not None and len(minor_xticks) > 0:
+                axes[row_index][col_index].set_xticks(minor_xticks, minor=True)
             yticks, yticklabels = (
-                signal.get_value_ticks(),
-                signal.get_value_tick_labels(),
+                signal.value_annotation.ticks,
+                signal.value_annotation.ticklabels,
             )
             axes[row_index][col_index].set_yticks(yticks)
             axes[row_index][col_index].set_yticklabels(yticklabels)
             axes[row_index][col_index].set_xlim(0, 1)
             axes[row_index][col_index].set_ylim(0, 1)
-        fig.tight_layout()
+        if self.plot_args.ax_size is None:
+            fig.tight_layout()
         return fig, axes
 
     def plot(self, **kwargs):
@@ -336,7 +430,6 @@ class Signal1DCollection(SignalCollection):
         mode = 2: plot separately;
         legend_cols: int, default 1, number of columns in the legend
         """
-        axes: list[plt.Axes]
         if self.plot_args.mode in [0, 1]:
             # Axes containing only 1 subplot
             if self.plot_args.mode == 0:
@@ -373,7 +466,7 @@ class Signal1DCollection(SignalCollection):
         ticklabel_space = (axis_limit[1] - axis_limit[0]) / 10
         if ticklabel_space == 0:
             raise ValueError("All signals have the same axis data.")
-        self.axis_annotation.ticklabel_space = ticklabel_space
+        self.axis_annotation.ticklabel_space_major = ticklabel_space
         for signal in self.signals:
             if isinstance(signal, ContinuousSignal1D):
                 value_data = signal.data.iloc[:, 1]
@@ -383,7 +476,7 @@ class Signal1DCollection(SignalCollection):
                 ticklabel_space = (value_max - value_min) / 10
                 if ticklabel_space == 0:
                     ticklabel_space = 1.0
-                signal.value_annotation.ticklabel_space = ticklabel_space
+                signal.value_annotation.ticklabel_space_major = ticklabel_space
 
 
 @dataclass
@@ -457,7 +550,7 @@ class ContinuousSignal1DCollection(Signal1DCollection):
                 else (min(axis_limit[0], axis_min), max(axis_limit[1], axis_max))
             )
         self.align_axes(*axis_limit)
-        self.axis_annotation.ticklabel_space = (axis_limit[1] - axis_limit[0]) / 10
+        self.axis_annotation.ticklabel_space_major = (axis_limit[1] - axis_limit[0]) / 10
 
         value_limit = None
         for signal in self.signals:
@@ -470,4 +563,4 @@ class ContinuousSignal1DCollection(Signal1DCollection):
                 else (min(value_limit[0], value_min), max(value_limit[1], value_max))
             )
         self.align_values(self.signal_names, *value_limit)
-        self.value_annotation.ticklabel_space = (value_limit[1] - value_limit[0]) / 10
+        self.value_annotation.ticklabel_space_major = (value_limit[1] - value_limit[0]) / 10

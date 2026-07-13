@@ -78,16 +78,17 @@ class ContDescAnno(DescAnno):
     limit: tuple[float, float] = None
     margin: tuple[float, float] = (0.0, 1.0)
     ticklabel_floor: float = None
-    _ticklabel_space: float = None
+    _ticklabel_space_major: float = None
+    _ticklabel_space_minor: float = None
     ticklabel_digits: int = 0
 
     @property
-    def ticklabel_space(self):
-        return self._ticklabel_space
+    def ticklabel_space_major(self):
+        return self._ticklabel_space_major
 
-    @ticklabel_space.setter
-    def ticklabel_space(self, value):
-        self._ticklabel_space = value
+    @ticklabel_space_major.setter
+    def ticklabel_space_major(self, value):
+        self._ticklabel_space_major = value
         if value > 1:
             self.ticklabel_digits = 0
         elif value > 0.1:
@@ -100,9 +101,17 @@ class ContDescAnno(DescAnno):
             self.ticklabel_digits = 4
 
     @property
+    def ticklabel_space_minor(self):
+        return self._ticklabel_space_minor
+
+    @ticklabel_space_minor.setter
+    def ticklabel_space_minor(self, value):
+        self._ticklabel_space_minor = value
+
+    @property
     def ticklabels(self):
         assert self.limit is not None, "limit is not set"
-        assert self.ticklabel_space is not None, "ticklabel_space is not set"
+        assert self.ticklabel_space_major is not None, "ticklabel_space_major is not set"
         assert self.ticklabel_digits is not None, "ticklabel_digits is not set"
 
         if self.ticklabel_floor is None:
@@ -114,7 +123,7 @@ class ContDescAnno(DescAnno):
         c_number = ticklabel_floor
         while c_number <= self.limit[1]:
             numbers.append(c_number)
-            c_number += self.ticklabel_space
+            c_number += self.ticklabel_space_major
 
         strings = [f"{num:.{self.ticklabel_digits}f}" for num in numbers]
         return strings
@@ -128,6 +137,38 @@ class ContDescAnno(DescAnno):
         if limit_range == 0:
             return np.full_like(ticklabels, (self.margin[0] + self.margin[1]) / 2)
         ticks = (ticklabels - self.limit[0]) / limit_range * (
+            self.margin[1] - self.margin[0]
+        ) + self.margin[0]
+        return ticks
+
+    @property
+    def ticks_minor(self):
+        """Minor tick positions in normalized [0, 1] coordinates.
+
+        Returns None when *ticklabel_space_minor* is not set, so callers
+        can safely skip setting minor ticks on the Axes.
+        """
+        if self.ticklabel_space_minor is None:
+            return None
+        assert self.limit is not None, "limit is not set"
+        assert self.margin is not None, "margin is not set"
+
+        if self.ticklabel_floor is None:
+            ticklabel_floor = self.limit[0]
+        else:
+            ticklabel_floor = self.ticklabel_floor
+
+        numbers = []
+        c_number = ticklabel_floor
+        while c_number <= self.limit[1]:
+            numbers.append(c_number)
+            c_number += self.ticklabel_space_minor
+
+        limit_range = self.limit[1] - self.limit[0]
+        if limit_range == 0:
+            return np.full_like(np.array(numbers),
+                                (self.margin[0] + self.margin[1]) / 2)
+        ticks = (np.array(numbers) - self.limit[0]) / limit_range * (
             self.margin[1] - self.margin[0]
         ) + self.margin[0]
         return ticks

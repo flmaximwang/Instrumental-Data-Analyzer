@@ -76,7 +76,7 @@ axis_annotation = ContDescAnno(
     limit=(200, 800),            # 数据范围
     margin=(0.05, 0.95),         # 绘图边距
 )
-axis_annotation.ticklabel_space = 100  # 自动计算刻度标签
+axis_annotation.ticklabel_space_major = 100  # 自动计算刻度标签
 print(axis_annotation.ticklabels)      # ['200', '300', '400', ...]
 print(axis_annotation.ticks)           # 缩放到 margin 后的刻度位置
 ```
@@ -255,7 +255,7 @@ eis = chi660eEIS.from_exported_files({"file.txt": "Sample Name"})
 
 ```python
 collection.plot_args.mode = 1  # 切换模式
-collection.plot_args.figsize = (12, 4)
+collection.plot_args.ax_size = (10, 4)  # Axes 数据区宽度 10in, 高度 4in
 collection.plot_args.legend_cols = 2
 fig, axes = collection.plot()
 ```

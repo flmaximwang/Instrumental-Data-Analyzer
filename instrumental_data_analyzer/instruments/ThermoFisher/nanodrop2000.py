@@ -122,10 +122,10 @@ class Nanodrop2000Workbook(AbsorbSpecCollection):
         super().set_default_annotations()
         if mode == "UV-Vis":
             self.align_axes(220, 720)
-            self.axis_annotation.ticklabel_space = 100
+            self.axis_annotation.ticklabel_space_major = 100
         elif mode == "Protein A280":
             self.align_axes(220, 320)
-            self.axis_annotation.ticklabel_space = 20
+            self.axis_annotation.ticklabel_space_major = 20
         else:
             raise ValueError(f"Unknown mode: {mode}")
 
@@ -137,7 +137,7 @@ class Nanodrop2000Workbook(AbsorbSpecCollection):
                 value_max = current_max
         if (value_max > 10) & (value_max <= 15):
             self.align_values(self.visible_signal_names, 0, 15)
-            self.value_annotation.ticklabel_space = 5
+            self.value_annotation.ticklabel_space_major = 5
         elif (value_max > 15) & (value_max <= 60):
             self.align_values(self.visible_signal_names, 0, 60)
-            self.value_annotation.ticklabel_space = 10
+            self.value_annotation.ticklabel_space_major = 10
