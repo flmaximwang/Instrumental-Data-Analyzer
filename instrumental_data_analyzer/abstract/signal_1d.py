@@ -326,13 +326,21 @@ class ContinuousSignal1D_Base(Signal1D):
             ContDescAnno(
                 name=axis_name,
                 unit=axis_unit,
-                limit=(min(data.iloc[:, 0]), max(data.iloc[:, 0])) if len(data) > 0 else (0, 1),
+                limit=(
+                    (min(data.iloc[:, 0]), max(data.iloc[:, 0]))
+                    if len(data) > 0
+                    else (0, 1)
+                ),
                 margin=(0, 1),
             ),
             ContDescAnno(
                 name=value_name,
                 unit=value_unit,
-                limit=(min(data.iloc[:, 1]), max(data.iloc[:, 1])) if len(data) > 0 else (0, 1),
+                limit=(
+                    (min(data.iloc[:, 1]), max(data.iloc[:, 1]))
+                    if len(data) > 0
+                    else (0, 1)
+                ),
                 margin=(0, 1),
             ),
         ]
@@ -727,7 +735,7 @@ class ContinuousSignal1D_Base(Signal1D):
             **kwargs,
         )
 
-    def integrate_between(self, start, end):
+    def integrate_between(self, start, end, ax=None):
         signal_data: pd.DataFrame = self.data
         signal_data = signal_data[
             (signal_data.iloc[:, 0] >= start) & (signal_data.iloc[:, 0] <= end)
@@ -737,8 +745,9 @@ class ContinuousSignal1D_Base(Signal1D):
             baseline = np.array([baseline for _ in range(len(signal_data))])
         else:
             if len(baseline) != len(signal_data):
-                print("Baseline length should be equal to the length of signal data")
-                return None
+                raise ValueError(
+                    "Baseline length should be equal to the length of signal data"
+                )
             else:
                 baseline = np.array(baseline)
 
@@ -867,7 +876,11 @@ class DiscreteSignal1D(Signal1D):
             ContDescAnno(
                 name=axis_name,
                 unit=axis_unit,
-                limit=(min(data.iloc[:, 0]), max(data.iloc[:, 0])) if len(data) > 0 else (0, 1),
+                limit=(
+                    (min(data.iloc[:, 0]), max(data.iloc[:, 0]))
+                    if len(data) > 0
+                    else (0, 1)
+                ),
                 margin=(0, 1),
             ),
             DescAnno(

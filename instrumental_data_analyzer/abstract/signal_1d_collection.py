@@ -84,7 +84,6 @@ class Signal1DCollection(SignalCollection):
         for signal_collection in signal_collections:
             for signal in signal_collection.signals:
                 if signal_renaming:
-
                     signal.name = f"{signal_collection.name}_{signal.name}"
                 signals.append(signal)
         return cls.from_similar_signals(signals, name=name)
@@ -290,7 +289,6 @@ class Signal1DCollection(SignalCollection):
         ax.set_ylim(0, 1)
         ax.set_xlabel(self.axis_annotation.label)
         ax.set_ylabel(self.value_annotation.label)
-        print(legend_bbox_to_anchor)
         ax.legend(
             handles=handles,
             ncols=legend_cols,
@@ -470,7 +468,6 @@ class Signal1DCollection(SignalCollection):
         axis_limit = None
         for signal in self.signals:
             axis_data = signal.data.iloc[:, 0]
-            print(axis_data)
             axis_min = min(axis_data)
             axis_max = max(axis_data)
             axis_limit = (
