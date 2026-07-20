@@ -30,9 +30,9 @@ from ...abstract.display import Signal1DPlotArgs
 from ...concrete.spectroscopy import AbsorbSpec, AbsorbSpecCollection
 
 
-@dataclass
+@dataclass(slots=True)
 class Nanodrop2000PlotArgs(Signal1DPlotArgs):
-    figsize: tuple[float, float] = (8, 6)
+    ax_size: tuple[float, float] = (8, 6)
     colormap: str = "default"
     mode: int = 0
 

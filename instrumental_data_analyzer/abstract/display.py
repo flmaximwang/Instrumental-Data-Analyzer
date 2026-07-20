@@ -13,42 +13,51 @@
   2: 每个信号绘制在单独的子图中 (分面绘图)
 """
 
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Annotated
 from dataclasses import dataclass
 from matplotlib.colors import Colormap
 from matplotlib import colormaps
 
 
-@dataclass
+@dataclass(slots=True)
 class SignalPlotArgs:
-    """
-    PlotArgs is used to store the arguments for plotting a signal collection.
-    It contains the following properties:
+    """General plotting parameters for signal collections.
 
-    Properties
+    Parameters
     ----------
-    ax_size: tuple[float, float] | None
-        The size (width, height) of the Axes data area (between spines) in inches.
-        When set, the Figure is sized to accommodate ax_size plus margins for
-        labels, legend, and title, and the Axes position is set explicitly so
-        the data area is identical across plots regardless of legend width.
-        When None, matplotlib's default sizing is used.
-    axis_shift: float | None
-        The shift in mode 1
-    colormap: str
-        The colormap to be used for plotting. Default is 'default'.
-    colormap_min: float
-        The minimum value for the colormap. Default is 0.
-    colormap_max: float
-        The maximum value for the colormap. Default is 1.
+    axis_shift : float
+        Normalised spacing between twin y-axis spines in mode 1.
+    ax_size : tuple[float, float] | None
+        Size of the Axes data area (between spines) *in centimetres*.
+        When set, the Figure is sized as *ax_size* + margins for labels,
+        legend, and title.  When ``None``, matplotlib default sizing is used.
+
+        .. note::
+
+            ``ax_size`` controls the **Axes**, not the Figure.  The Figure
+            is roughly ``ax_size + (8 cm, 2.5 cm)`` for the extra space
+            taken by y-labels, legend, and title.  For a ~25 × 13 cm
+            Figure, try ``ax_size = (17, 10)``.
+    cmap : str | Colormap | None
+        Colour map for signal lines.  See :attr:`cmap` setter.
+    cmap_limit : tuple[float, float]
+        Value range mapped to the colour map.
+    legend_cols : int
+        Number of columns in the legend.
+    legend_bbox_to_anchor : tuple[float, float]
+        Bounding-box anchor for the legend, in Axes-normalised coordinates.
     """
 
-    mode = 0
-    axis_shift = 0.2
-    ax_size: tuple[float, float] | None = None
+    #: Normalised gap between twin y-axis spines (mode 1)
+    axis_shift: float = 0.2
+    #: Axes data-area size (width, height) in cm.  None → matplotlib default.
+    ax_size: Annotated[tuple[float, float] | None, "cm"] = None
     _cmap: Colormap = None
+    #: (min, max) for colour-map value range
     cmap_limit: tuple[float, float] = (0, 1)
+    #: Number of legend columns
     legend_cols: int = 1
+    #: Legend anchor in Axes-normalised coordinates (x, y)
     legend_bbox_to_anchor: tuple[float, float] = (1.05, 1)
 
     @property
@@ -71,15 +80,17 @@ class SignalPlotArgs:
             )
 
 
-@dataclass
+@dataclass(slots=True)
 class Signal1DPlotArgs(SignalPlotArgs):
-    """
-    Properties
+    """1D signal plotting parameters.
+
+    Parameters
     ----------
-    mode: int
-        0: Plot with collection annotations
-        1: Plot with all signal annotations
-        2: Plot in separate subplots
+    mode : int
+        - 0 = overlaid (all signals share one pair of axes);
+        - 1 = twin y-axes (share x-axis, each signal gets its own y-axis);
+        - 2 = faceted (each signal in its own subplot).
     """
 
+    #: 0=overlaid, 1=twin y-axes, 2=faceted
     mode: int = 0

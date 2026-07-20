@@ -152,8 +152,8 @@ class Signal1DCollection(SignalCollection):
 
         When ``self.plot_args.ax_size`` is set, the Axes data area (between
         spines, not including labels, ticks, or legend) is exactly *ax_size*
-        inches.  The Figure is sized to accommodate the data area plus margins
-        (class constants ``_MARGIN_*``), and the Axes position is set
+        **cm**.  The Figure is sized to accommodate the data area plus margins
+        (class constants ``_MARGIN_*``, in inches), and the Axes position is set
         explicitly — **tight_layout is NOT called**, so the data area
         dimensions are guaranteed identical across plots regardless of legend
         width or tick-label length.
@@ -170,7 +170,7 @@ class Signal1DCollection(SignalCollection):
 
         Returns
         -------
-        ``(fig, ax)`` for 1\N{MULTIPLICATION SIGN}1,
+        ``(fig, ax)`` for 1\u00d71,
         ``(fig, axes_2d)`` for larger grids.
         ``axes_2d`` is ``list[list[plt.Axes]]``.
         """
@@ -187,13 +187,17 @@ class Signal1DCollection(SignalCollection):
             return fig, a.tolist()
 
         # ---- fixed-size layout ------------------------------------------------
+        # matplotlib uses inches internally; convert ax_size from cm.
+        aw = ax_size[0] / 2.54
+        ah = ax_size[1] / 2.54
+
         ml = self._MARGIN_LEFT
         mr = margin_right if margin_right is not None else self._MARGIN_RIGHT
         mb = self._MARGIN_BOTTOM
         mt = self._MARGIN_TOP
 
-        fig_w = ax_size[0] * ncols + ml + mr
-        fig_h = ax_size[1] * nrows + mb + mt
+        fig_w = aw * ncols + ml + mr
+        fig_h = ah * nrows + mb + mt
 
         fig = plt.figure(figsize=(fig_w, fig_h))
 
@@ -201,15 +205,15 @@ class Signal1DCollection(SignalCollection):
         for row in range(nrows):
             row_axes = []
             for col in range(ncols):
-                left = (ml + col * ax_size[0]) / fig_w
-                bottom = (mb + (nrows - 1 - row) * ax_size[1]) / fig_h
+                left = (ml + col * aw) / fig_w
+                bottom = (mb + (nrows - 1 - row) * ah) / fig_h
                 row_axes.append(
                     fig.add_axes(
                         (
                             left,
                             bottom,
-                            ax_size[0] / fig_w,
-                            ax_size[1] / fig_h,
+                            aw / fig_w,
+                            ah / fig_h,
                         )
                     )
                 )
@@ -307,10 +311,11 @@ class Signal1DCollection(SignalCollection):
         ax_size = self.plot_args.ax_size
         if ax_size is not None:
             # Each twin spine sits at (axes, 1 + axis_shift * i); add space
-            # for the spine offset + its label.
+            # for the spine offset + its label.  ax_size is in cm, convert
+            # to inches for the margin calculation (matplotlib native unit).
             margin_right = max(
                 self._MARGIN_RIGHT,
-                0.7 + axis_shift * n_twins * ax_size[0],
+                0.7 + axis_shift * n_twins * ax_size[0] / 2.54,
             )
         else:
             margin_right = self._MARGIN_RIGHT

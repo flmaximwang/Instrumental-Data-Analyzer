@@ -29,7 +29,7 @@ from ..abstract import (
 )
 
 
-@dataclass
+@dataclass(slots=True)
 class ChromPlotArgs(Signal1DPlotArgs):
 
     ax_size: tuple[float, float] | None = (16, 5)

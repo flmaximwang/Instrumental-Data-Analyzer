@@ -255,7 +255,7 @@ eis = chi660eEIS.from_exported_files({"file.txt": "Sample Name"})
 
 ```python
 collection.plot_args.mode = 1  # 切换模式
-collection.plot_args.ax_size = (10, 4)  # Axes 数据区宽度 10in, 高度 4in
+collection.plot_args.ax_size = (25, 10)  # Axes 数据区宽度 25 cm, 高度 10 cm
 collection.plot_args.legend_cols = 2
 fig, axes = collection.plot()
 ```
