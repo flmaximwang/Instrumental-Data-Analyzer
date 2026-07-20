@@ -485,16 +485,33 @@ class Signal1DCollection(SignalCollection):
         if ticklabel_space == 0:
             raise ValueError("All signals have the same axis data.")
         self.axis_annotation.ticklabel_space_major = ticklabel_space
+        self.axis_annotation.ticklabel_space_minor = ticklabel_space / 5
+        collection_value_max = None
+        collection_value_min = None
         for signal in self.signals:
             if isinstance(signal, ContinuousSignal1D):
                 value_data = signal.data.iloc[:, 1]
                 value_min = min(value_data)
+                collection_value_min = (
+                    value_min
+                    if collection_value_min is None
+                    else min(value_min, collection_value_min)
+                )
                 value_max = max(value_data)
+                collection_value_max = (
+                    value_max
+                    if collection_value_max is None
+                    else max(value_max, collection_value_max)
+                )
                 signal.value_annotation.limit = (value_min, value_max)
                 ticklabel_space = (value_max - value_min) / 10
                 if ticklabel_space == 0:
                     ticklabel_space = 1.0
                 signal.value_annotation.ticklabel_space_major = ticklabel_space
+                signal.value_annotation.ticklabel_space_minor = ticklabel_space / 5
+        ticklabel_space = (collection_value_max - collection_value_min) / 10
+        self.value_annotation.ticklabel_space_major = ticklabel_space
+        self.value_annotation.ticklabel_space_minor = ticklabel_space / 5
 
 
 @dataclass

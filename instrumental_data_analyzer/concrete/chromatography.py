@@ -32,8 +32,9 @@ from ..abstract import (
 @dataclass(slots=True)
 class ChromPlotArgs(Signal1DPlotArgs):
 
-    ax_size: tuple[float, float] | None = (16, 5)
-    mode: int = 1
+    def __post_init__(self):
+        self.mode = 1
+        self.ax_size = (16, 5)
 
 
 @dataclass
