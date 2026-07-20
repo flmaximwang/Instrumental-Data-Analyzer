@@ -84,9 +84,10 @@ class Signal1DCollection(SignalCollection):
         for signal_collection in signal_collections:
             for signal in signal_collection.signals:
                 if signal_renaming:
-                    signals.append(signal)
+
                     signal.name = f"{signal_collection.name}_{signal.name}"
-        return cls(signals=signals, name=name)
+                signals.append(signal)
+        return cls.from_similar_signals(signals, name=name)
 
     def extend_signals(self, new_signals: list[Signal1D]) -> None:
         for signal in new_signals:
@@ -141,10 +142,10 @@ class Signal1DCollection(SignalCollection):
     # ==================== Fixed-size Axes helper ====================
 
     # Margins (inches) around the data area — used when ax_size is set.
-    _MARGIN_LEFT = 0.75       # ylabel + yticks
-    _MARGIN_RIGHT = 2.5       # outside legend
-    _MARGIN_BOTTOM = 0.6      # xlabel + xticks
-    _MARGIN_TOP = 0.4         # title
+    _MARGIN_LEFT = 0.75  # ylabel + yticks
+    _MARGIN_RIGHT = 2.5  # outside legend
+    _MARGIN_BOTTOM = 0.6  # xlabel + xticks
+    _MARGIN_TOP = 0.4  # title
 
     def _make_axes(self, nrows=1, ncols=1, *, margin_right=None):
         """
@@ -204,12 +205,14 @@ class Signal1DCollection(SignalCollection):
                 left = (ml + col * ax_size[0]) / fig_w
                 bottom = (mb + (nrows - 1 - row) * ax_size[1]) / fig_h
                 row_axes.append(
-                    fig.add_axes((
-                        left,
-                        bottom,
-                        ax_size[0] / fig_w,
-                        ax_size[1] / fig_h,
-                    ))
+                    fig.add_axes(
+                        (
+                            left,
+                            bottom,
+                            ax_size[0] / fig_w,
+                            ax_size[1] / fig_h,
+                        )
+                    )
                 )
             axes_2d.append(row_axes)
 
@@ -280,6 +283,9 @@ class Signal1DCollection(SignalCollection):
             yticklabels = self.value_annotation.ticklabels
             ax.set_yticks(yticks)
             ax.set_yticklabels(yticklabels)
+            minor_yticks = self.value_annotation.ticks_minor
+            if minor_yticks is not None and len(minor_yticks) > 0:
+                ax.set_yticks(minor_yticks, minor=True)
         ax.set_xlim(0, 1)
         ax.set_ylim(0, 1)
         ax.set_xlabel(self.axis_annotation.label)
@@ -296,7 +302,8 @@ class Signal1DCollection(SignalCollection):
     def plot_with_all_annotations(self, axis_shift, **kwargs):
         # Count twin axes to size the right margin properly
         n_twins = sum(
-            1 for i, name in enumerate(self.visible_signal_names)
+            1
+            for i, name in enumerate(self.visible_signal_names)
             if i > 0 and isinstance(self[name], ContinuousSignal1D)
         )
         ax_size = self.plot_args.ax_size
@@ -342,6 +349,9 @@ class Signal1DCollection(SignalCollection):
                 ax_to_plot.set_ylabel(signal.value_annotation.label)
                 ax_to_plot.set_yticks(signal.value_annotation.ticks)
                 ax_to_plot.set_yticklabels(signal.value_annotation.ticklabels)
+                minor_yticks = signal.value_annotation.ticks_minor
+                if minor_yticks is not None and len(minor_yticks) > 0:
+                    ax_to_plot.set_yticks(minor_yticks, minor=True)
 
             handles.append(handle)
 
@@ -404,8 +414,10 @@ class Signal1DCollection(SignalCollection):
             axes[row_index][col_index].set_title(signal_name)
             axes[row_index][col_index].set_xlabel(self.axis_annotation.label)
             axes[row_index][col_index].set_ylabel(signal.value_annotation.label)
-            xticks, xticklabels = (signal.axis_annotation.ticks,
-                                   signal.axis_annotation.ticklabels)
+            xticks, xticklabels = (
+                signal.axis_annotation.ticks,
+                signal.axis_annotation.ticklabels,
+            )
             axes[row_index][col_index].set_xticks(xticks)
             axes[row_index][col_index].set_xticklabels(xticklabels)
             minor_xticks = signal.axis_annotation.ticks_minor
@@ -417,6 +429,9 @@ class Signal1DCollection(SignalCollection):
             )
             axes[row_index][col_index].set_yticks(yticks)
             axes[row_index][col_index].set_yticklabels(yticklabels)
+            minor_yticks = signal.value_annotation.ticks_minor
+            if minor_yticks is not None and len(minor_yticks) > 0:
+                axes[row_index][col_index].set_yticks(minor_yticks, minor=True)
             axes[row_index][col_index].set_xlim(0, 1)
             axes[row_index][col_index].set_ylim(0, 1)
         if self.plot_args.ax_size is None:
@@ -455,6 +470,7 @@ class Signal1DCollection(SignalCollection):
         axis_limit = None
         for signal in self.signals:
             axis_data = signal.data.iloc[:, 0]
+            print(axis_data)
             axis_min = min(axis_data)
             axis_max = max(axis_data)
             axis_limit = (
@@ -550,7 +566,9 @@ class ContinuousSignal1DCollection(Signal1DCollection):
                 else (min(axis_limit[0], axis_min), max(axis_limit[1], axis_max))
             )
         self.align_axes(*axis_limit)
-        self.axis_annotation.ticklabel_space_major = (axis_limit[1] - axis_limit[0]) / 10
+        self.axis_annotation.ticklabel_space_major = (
+            axis_limit[1] - axis_limit[0]
+        ) / 10
 
         value_limit = None
         for signal in self.signals:
@@ -563,4 +581,6 @@ class ContinuousSignal1DCollection(Signal1DCollection):
                 else (min(value_limit[0], value_min), max(value_limit[1], value_max))
             )
         self.align_values(self.signal_names, *value_limit)
-        self.value_annotation.ticklabel_space_major = (value_limit[1] - value_limit[0]) / 10
+        self.value_annotation.ticklabel_space_major = (
+            value_limit[1] - value_limit[0]
+        ) / 10

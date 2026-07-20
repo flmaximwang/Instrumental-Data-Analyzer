@@ -10,7 +10,7 @@ Example:
 from pathlib import Path
 
 import sys
-from instrumental_data_analyzer.instruments.Cytiva.unicorn7 import Unicorn7Chrom
+from instrumental_data_analyzer.instruments.Cytiva.unicorn7 import Unicorn7Project
 import matplotlib.pyplot as plt
 
 if len(sys.argv) < 2:
@@ -19,7 +19,7 @@ if len(sys.argv) < 2:
 
 txt_path = sys.argv[1]
 
-my_chrom = Unicorn7Chrom.from_txt(txt_path)[0]
+my_chrom = Unicorn7Project.read_txt(txt_path)[0]
 my_chrom.set_default_annotations()
 my_chrom.visible_signal_names = ["UV 1_280", "Cond", "Fraction"]
 my_chrom.align_axes(0, 35)
