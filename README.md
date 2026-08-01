@@ -257,6 +257,10 @@ eis = chi660eEIS.from_exported_files({"file.txt": "Sample Name"})
 collection.plot_args.mode = 1  # 切换模式
 collection.plot_args.ax_size = (25, 10)  # Axes 数据区宽度 25 cm, 高度 10 cm
 collection.plot_args.legend_cols = 2
+# margin 默认 None: 第一次 plot() 会自动实测标签宽度并写入 margin (cm)
+collection.plot_args.margin = (1.9, 2.0, 1.5, 1.0)  # 也可手动指定: left, right, bottom, top
+collection.plot_args.margin_right = 2.5  # 也可单独设置某一边距 (cm)
+collection.plot_args.margin = None  # 恢复自动实测
 fig, axes = collection.plot()
 ```
 

@@ -14,7 +14,7 @@
   增加了 ``average_similar_signals`` 按名称分组求平均。
 """
 
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Literal, overload
 from dataclasses import dataclass, field
 from copy import deepcopy
 from pathlib import Path
@@ -23,7 +23,7 @@ import pandas as pd
 from .signal import ContDescAnno, DiscDescAnno
 from .signal_collection import SignalCollection
 from .signal_1d import Signal1D, ContinuousSignal1D
-from .display import Signal1DPlotArgs
+from .display import Signal1DPlotArgs, _DEFAULT_MARGIN_CM
 import matplotlib.pyplot as plt
 
 
@@ -140,20 +140,24 @@ class Signal1DCollection(SignalCollection):
 
     # ==================== Fixed-size Axes helper ====================
 
-    # Margins (inches) around the data area — used when ax_size is set.
-    _MARGIN_LEFT = 0.75  # ylabel + yticks
-    _MARGIN_RIGHT = 2.5  # outside legend
-    _MARGIN_BOTTOM = 0.6  # xlabel + xticks
-    _MARGIN_TOP = 0.4  # title
+    @overload
+    def _make_axes(
+        self, nrows: Literal[1] = 1, ncols: Literal[1] = 1
+    ) -> tuple[plt.Figure, plt.Axes]: ...
 
-    def _make_axes(self, nrows=1, ncols=1, *, margin_right=None):
+    @overload
+    def _make_axes(
+        self, nrows: int, ncols: int
+    ) -> tuple[plt.Figure, list[list[plt.Axes]]]: ...
+
+    def _make_axes(self, nrows=1, ncols=1):
         """
         Create a Figure and Axes with a fixed data-area size (*ax_size*).
 
         When ``self.plot_args.ax_size`` is set, the Axes data area (between
         spines, not including labels, ticks, or legend) is exactly *ax_size*
         **cm**.  The Figure is sized to accommodate the data area plus margins
-        (class constants ``_MARGIN_*``, in inches), and the Axes position is set
+        (``plot_args.margin``, in cm), and the Axes position is set
         explicitly — **tight_layout is NOT called**, so the data area
         dimensions are guaranteed identical across plots regardless of legend
         width or tick-label length.
@@ -165,8 +169,6 @@ class Signal1DCollection(SignalCollection):
         ----------
         nrows, ncols : int
             Grid dimensions.
-        margin_right : float or None
-            Override the right-margin default.  Used by mode 1 (twin axes).
 
         Returns
         -------
@@ -188,13 +190,17 @@ class Signal1DCollection(SignalCollection):
 
         # ---- fixed-size layout ------------------------------------------------
         # matplotlib uses inches internally; convert ax_size from cm.
+        margin = self.plot_args.margin
+        if margin is None:
+            raise RuntimeError(
+                "plot_args.margin is None — call plot() to auto-measure it, "
+                "or set plot_args.margin explicitly"
+            )
         aw = ax_size[0] / 2.54
         ah = ax_size[1] / 2.54
 
-        ml = self._MARGIN_LEFT
-        mr = margin_right if margin_right is not None else self._MARGIN_RIGHT
-        mb = self._MARGIN_BOTTOM
-        mt = self._MARGIN_TOP
+        ml, mr, mb, mt = margin  # cm
+        ml, mr, mb, mt = ml / 2.54, mr / 2.54, mb / 2.54, mt / 2.54  # → inches
 
         fig_w = aw * ncols + ml + mr
         fig_h = ah * nrows + mb + mt
@@ -223,7 +229,76 @@ class Signal1DCollection(SignalCollection):
             return fig, axes_2d[0][0]
         return fig, axes_2d
 
-    def plot_with_collection_annotations(self, **kwargs):
+    # ==================== Auto-measured margins ====================
+
+    def _auto_measure_margins(self, **kwargs) -> None:
+        """Draw a tentative figure, measure the label extents, and store the
+        measured margins (cm) into ``plot_args.margin``.
+
+        Called when ``plot_args.margin`` is ``None`` (the default): the
+        fixed-size layout needs margins before the labels exist, so we
+        first build with the default constants, measure how much space
+        the labels really take, then rebuild with the measured values.
+        The measured margins are cached in ``plot_args.margin``, so only
+        the first :meth:`plot` call pays for the extra draw.
+        """
+        self.plot_args.margin = _DEFAULT_MARGIN_CM
+        if self.plot_args.mode == 0:
+            fig, _ = self.plot_with_collection_annotations(**kwargs)
+        elif self.plot_args.mode == 1:
+            fig, _ = self.plot_with_all_annotations(
+                axis_shift=self.plot_args.axis_shift, **kwargs
+            )
+        elif self.plot_args.mode == 2:
+            fig, _ = self.plot_separately(**kwargs)
+        else:
+            raise Exception("Unknown display mode")
+        fig.canvas.draw()
+        measured = self._measure_label_margins(fig)
+        plt.close(fig)
+        self.plot_args.margin = measured
+
+    @staticmethod
+    def _measure_label_margins(fig) -> tuple[float, float, float, float]:
+        """Measure the space (cm) labels need around each Axes of *fig*.
+
+        Returns ``(left, right, bottom, top)`` margins such that no label
+        (tick labels, axis labels, titles, legends, shifted twin spines)
+        sticks out of the figure, plus a small padding.  Requires the
+        figure to be drawn already.
+        """
+        pad_in = 0.1  # inches of breathing room
+        dpi = fig.dpi
+        overhang = {"left": 0.0, "right": 0.0, "bottom": 0.0, "top": 0.0}
+        for ax in fig.axes:
+            if not ax.get_visible():
+                continue
+            ax_bb = ax.get_window_extent()
+            artists = [ax.xaxis.label, ax.yaxis.label, ax.title]
+            artists += list(ax.get_xticklabels()) + list(ax.get_yticklabels())
+            if ax.legend_ is not None:
+                artists.append(ax.legend_)
+            for art in artists:
+                try:
+                    bb = art.get_window_extent()
+                except Exception:
+                    continue
+                if bb.width == 0 and bb.height == 0:
+                    continue
+                overhang["left"] = max(overhang["left"], max(0.0, ax_bb.x0 - bb.x0))
+                overhang["right"] = max(overhang["right"], max(0.0, bb.x1 - ax_bb.x1))
+                overhang["bottom"] = max(overhang["bottom"], max(0.0, ax_bb.y0 - bb.y0))
+                overhang["top"] = max(overhang["top"], max(0.0, bb.y1 - ax_bb.y1))
+        return (
+            (overhang["left"] / dpi + pad_in) * 2.54,
+            (overhang["right"] / dpi + pad_in) * 2.54,
+            (overhang["bottom"] / dpi + pad_in) * 2.54,
+            (overhang["top"] / dpi + pad_in) * 2.54,
+        )
+
+    def plot_with_collection_annotations(
+        self, **kwargs
+    ) -> tuple[plt.Figure, plt.Axes]:
 
         fig, ax = self._make_axes(1, 1)
         self.plot_with_collection_annotations_at(ax, **kwargs)
@@ -301,26 +376,10 @@ class Signal1DCollection(SignalCollection):
         )
         ax.set_title(self.name)
 
-    def plot_with_all_annotations(self, axis_shift, **kwargs):
-        # Count twin axes to size the right margin properly
-        n_twins = sum(
-            1
-            for i, name in enumerate(self.visible_signal_names)
-            if i > 0 and isinstance(self[name], ContinuousSignal1D)
-        )
-        ax_size = self.plot_args.ax_size
-        if ax_size is not None:
-            # Each twin spine sits at (axes, 1 + axis_shift * i); add space
-            # for the spine offset + its label.  ax_size is in cm, convert
-            # to inches for the margin calculation (matplotlib native unit).
-            margin_right = max(
-                self._MARGIN_RIGHT,
-                0.7 + axis_shift * n_twins * ax_size[0] / 2.54,
-            )
-        else:
-            margin_right = self._MARGIN_RIGHT
-
-        fig, ax = self._make_axes(1, 1, margin_right=margin_right)
+    def plot_with_all_annotations(
+        self, axis_shift, **kwargs
+    ) -> tuple[plt.Figure, list[plt.Axes]]:
+        fig, ax = self._make_axes(1, 1)
         twins: list[plt.Axes] = []
         handles: list[plt.Line2D] = []
         counter = 0
@@ -448,6 +507,8 @@ class Signal1DCollection(SignalCollection):
         mode = 2: plot separately;
         legend_cols: int, default 1, number of columns in the legend
         """
+        if self.plot_args.ax_size is not None and self.plot_args.margin is None:
+            self._auto_measure_margins(**kwargs)
         if self.plot_args.mode in [0, 1]:
             # Axes containing only 1 subplot
             if self.plot_args.mode == 0:
