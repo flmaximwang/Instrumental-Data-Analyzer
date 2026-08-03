@@ -55,20 +55,47 @@ class Signal1DCollection(SignalCollection):
     # ============================ Constructors ============================
 
     @classmethod
-    def from_similar_signals(cls, signals: list[Signal1D], name="Untitled"):
+    def from_similar_signals(
+        cls,
+        signals: list[Signal1D],
+        name="Untitled",
+        signal_names: list[str] | None = None,
+    ):
         """
         Quickly create a Signal1DCollection from a list of similar Signal1D.
         Similar signals are defined as the signals sharing the same axis and value annotations.
         The axis and value annotations of the collection will be inherited from the first signal in the list.
+
+        Parameters
+        ----------
+        signals : list[Signal1D]
+            The signals to be added to the collection. They are deep-copied
+            before being added, so modifying the signals or their annotations
+            in the collection will NOT affect the original signals.
+        name : str
+            The name of the collection.
+        signal_names : list[str], optional
+            If given, rename the copied signals accordingly.
+            Must have the same length as *signals*.
         """
 
         axis_annotation = deepcopy(signals[0].axis_annotation)
         value_annotation = deepcopy(signals[0].value_annotation)
 
+        copied_signals = [deepcopy(signal) for signal in signals]
+        if signal_names is not None:
+            if len(signal_names) != len(copied_signals):
+                raise ValueError(
+                    f"The length of signal_names ({len(signal_names)}) should be the same as "
+                    f"the number of signals ({len(copied_signals)})."
+                )
+            for signal, signal_name in zip(copied_signals, signal_names):
+                signal.name = signal_name
+
         result = cls(
-            signals=signals,
+            signals=copied_signals,
             description_annotations=[axis_annotation, value_annotation],
-            visible_signal_names=[signal.name for signal in signals],
+            visible_signal_names=[signal.name for signal in copied_signals],
             name=name,
         )
         return result
@@ -81,12 +108,15 @@ class Signal1DCollection(SignalCollection):
         signal_renaming=True,
     ) -> "Signal1DCollection":
         signals: list[Signal1D] = []
+        signal_names: list[str] = []
         for signal_collection in signal_collections:
             for signal in signal_collection.signals:
                 if signal_renaming:
-                    signal.name = f"{signal_collection.name}_{signal.name}"
+                    signal_names.append(f"{signal_collection.name}_{signal.name}")
+                else:
+                    signal_names.append(signal.name)
                 signals.append(signal)
-        return cls.from_similar_signals(signals, name=name)
+        return cls.from_similar_signals(signals, name=name, signal_names=signal_names)
 
     def extend_signals(self, new_signals: list[Signal1D]) -> None:
         for signal in new_signals:
@@ -622,16 +652,17 @@ class ContinuousSignal1DCollection(Signal1DCollection):
                 name_dict[base_name] = []
             name_dict[base_name].append(signal)
         new_signals = []
+        new_signal_names = []
         for base_name, signal_list in name_dict.items():
             if len(signal_list) == 1:
                 new_signals.append(signal_list[0])
-                new_signals[-1].name = base_name
             else:
-                new_signal = type(self.signals[0]).average(signal_list)
-                new_signal.name = base_name
-                new_signals.append(new_signal)
+                new_signals.append(type(self.signals[0]).average(signal_list))
+            new_signal_names.append(base_name)
 
-        result = type(self).from_similar_signals(new_signals, name=self.name)
+        result = type(self).from_similar_signals(
+            new_signals, name=self.name, signal_names=new_signal_names
+        )
         return result
 
     def set_default_annotations(self):

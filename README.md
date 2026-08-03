@@ -146,8 +146,12 @@ from instrumental_data_analyzer import Signal1DCollection
 # 从 CSV 文件夹导入
 collection = Signal1DCollection.from_folder("data/folder/")
 
-# 从相似信号列表创建
+# 从相似信号列表创建（信号会被 deepcopy，修改集合内信号不影响原信号）
 collection = Signal1DCollection.from_similar_signals([sig1, sig2, sig3])
+# 创建时同时重命名集合内的信号副本
+collection = Signal1DCollection.from_similar_signals(
+    [sig1, sig2, sig3], signal_names=["A", "B", "C"]
+)
 
 # 访问信号
 sig = collection["Signal Name"]
