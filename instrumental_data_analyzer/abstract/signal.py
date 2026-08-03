@@ -109,9 +109,21 @@ class ContDescAnno(DescAnno):
         self._ticklabel_space_minor = value
 
     @property
+    def ticklabel_space(self):
+        return self._ticklabel_space_major, self._ticklabel_space_minor
+
+    @ticklabel_space.setter
+    def ticklabel_space(self, value):
+        major, minor = value
+        self.ticklabel_space_major = major
+        self.ticklabel_space_minor = minor
+
+    @property
     def ticklabels(self):
         assert self.limit is not None, "limit is not set"
-        assert self.ticklabel_space_major is not None, "ticklabel_space_major is not set"
+        assert (
+            self.ticklabel_space_major is not None
+        ), "ticklabel_space_major is not set"
         assert self.ticklabel_digits is not None, "ticklabel_digits is not set"
 
         if self.ticklabel_floor is None:
@@ -166,8 +178,9 @@ class ContDescAnno(DescAnno):
 
         limit_range = self.limit[1] - self.limit[0]
         if limit_range == 0:
-            return np.full_like(np.array(numbers),
-                                (self.margin[0] + self.margin[1]) / 2)
+            return np.full_like(
+                np.array(numbers), (self.margin[0] + self.margin[1]) / 2
+            )
         ticks = (np.array(numbers) - self.limit[0]) / limit_range * (
             self.margin[1] - self.margin[0]
         ) + self.margin[0]

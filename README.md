@@ -77,6 +77,7 @@ axis_annotation = ContDescAnno(
     margin=(0.05, 0.95),         # 绘图边距
 )
 axis_annotation.ticklabel_space_major = 100  # 自动计算刻度标签
+axis_annotation.ticklabel_space = (100, 20)  # 同时设置 major 和 minor 刻度间距
 print(axis_annotation.ticklabels)      # ['200', '300', '400', ...]
 print(axis_annotation.ticks)           # 缩放到 margin 后的刻度位置
 ```

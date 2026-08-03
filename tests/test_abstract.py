@@ -15,6 +15,40 @@ class TestSignal(unittest.TestCase):
         abstract.Signal.from_csv("tests/data/table_1.csv")
 
 
+class TestContDescAnno(unittest.TestCase):
+
+    def test_ticklabel_space_sets_major_and_minor(self):
+        anno = abstract.ContDescAnno()
+        anno.ticklabel_space = (100, 20)
+        self.assertEqual(anno.ticklabel_space_major, 100)
+        self.assertEqual(anno.ticklabel_space_minor, 20)
+
+    def test_ticklabel_space_accepts_any_length_2_iterable(self):
+        anno = abstract.ContDescAnno()
+        anno.ticklabel_space = [0.5, 0.1]
+        self.assertEqual(anno.ticklabel_space_major, 0.5)
+        self.assertEqual(anno.ticklabel_space_minor, 0.1)
+        anno.ticklabel_space = np.array([0.05, 0.01])
+        self.assertEqual(anno.ticklabel_space_major, 0.05)
+        self.assertEqual(anno.ticklabel_space_minor, 0.01)
+
+    def test_ticklabel_space_getter_returns_pair(self):
+        anno = abstract.ContDescAnno()
+        anno.ticklabel_space_major = 100
+        anno.ticklabel_space_minor = 20
+        self.assertEqual(anno.ticklabel_space, (100, 20))
+
+    def test_ticklabel_space_major_updates_digits(self):
+        anno = abstract.ContDescAnno()
+        anno.ticklabel_space = (0.05, 0.01)
+        self.assertEqual(anno.ticklabel_digits, 2)
+
+    def test_ticklabel_space_rejects_wrong_length(self):
+        anno = abstract.ContDescAnno()
+        with self.assertRaises(ValueError):
+            anno.ticklabel_space = (100,)
+
+
 class TestSignal1D(unittest.TestCase):
 
     def test_from_csv(self):
