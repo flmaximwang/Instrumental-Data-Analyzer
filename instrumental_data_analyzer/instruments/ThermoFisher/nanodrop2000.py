@@ -122,10 +122,16 @@ class Nanodrop2000Workbook(AbsorbSpecCollection):
         super().set_default_annotations()
         if mode == "UV-Vis":
             self.align_axes(220, 720)
+            self.axis_annotation.ticklabel_floor = 200
             self.axis_annotation.ticklabel_space_major = 100
+            self.axis_annotation.ticklabel_space_minor = 20
+            self.plot_args.legend_loc = "upper right"
         elif mode == "Protein A280":
             self.align_axes(220, 320)
+            self.axis_annotation.ticklabel_floor = 220
             self.axis_annotation.ticklabel_space_major = 20
+            self.axis_annotation.ticklabel_space_minor = 5
+            self.plot_args.legend_loc = "upper right"
         else:
             raise ValueError(f"Unknown mode: {mode}")
 
