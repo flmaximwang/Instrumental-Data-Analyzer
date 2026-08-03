@@ -22,7 +22,10 @@ from matplotlib import colormaps
 #: base tuple when an individual side (margin_left etc.) is set before any
 #: plot.  These are the historic inch defaults converted to cm.
 _DEFAULT_MARGIN_CM: tuple[float, float, float, float] = (
-    1.905, 6.35, 1.524, 1.016,
+    1.905,
+    6.35,
+    1.524,
+    1.016,
 )
 
 
@@ -65,7 +68,8 @@ class SignalPlotArgs:
     #: Number of legend columns
     legend_cols: int = 1
     #: Legend anchor in Axes-normalised coordinates (x, y)
-    legend_bbox_to_anchor: tuple[float, float] = (1.05, 1)
+    legend_bbox_to_anchor: tuple[float, float] = None
+    legend_loc: str = "upper right"
 
     @property
     def cmap(self) -> Colormap:

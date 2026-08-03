@@ -326,9 +326,7 @@ class Signal1DCollection(SignalCollection):
             (overhang["top"] / dpi + pad_in) * 2.54,
         )
 
-    def plot_with_collection_annotations(
-        self, **kwargs
-    ) -> tuple[plt.Figure, plt.Axes]:
+    def plot_with_collection_annotations(self, **kwargs) -> tuple[plt.Figure, plt.Axes]:
 
         fig, ax = self._make_axes(1, 1)
         self.plot_with_collection_annotations_at(ax, **kwargs)
@@ -343,6 +341,7 @@ class Signal1DCollection(SignalCollection):
         cmap_limit = self.plot_args.cmap_limit
         legend_cols = self.plot_args.legend_cols
         legend_bbox_to_anchor = self.plot_args.legend_bbox_to_anchor
+        legend_loc = self.plot_args.legend_loc
 
         handles = []
 
@@ -402,7 +401,7 @@ class Signal1DCollection(SignalCollection):
             handles=handles,
             ncols=legend_cols,
             bbox_to_anchor=legend_bbox_to_anchor,
-            loc="upper left",
+            loc=legend_loc,
         )
         ax.set_title(self.name)
 
@@ -412,6 +411,9 @@ class Signal1DCollection(SignalCollection):
         fig, ax = self._make_axes(1, 1)
         twins: list[plt.Axes] = []
         handles: list[plt.Line2D] = []
+        legend_bbox_to_anchor = self.plot_args.legend_bbox_to_anchor
+        legend_loc = self.plot_args.legend_loc
+
         counter = 0
         for i, signal_name in enumerate(self.visible_signal_names):
             signal = self[signal_name]
@@ -454,7 +456,7 @@ class Signal1DCollection(SignalCollection):
         if minor_xticks is not None and len(minor_xticks) > 0:
             ax.set_xticks(minor_xticks, minor=True)
         ax.set_xlim(0, 1)
-        ax.legend(handles=handles)
+        ax.legend(handles=handles, loc=legend_loc, bbox_to_anchor=legend_bbox_to_anchor)
         ax.set_title(self.name)
         if self.plot_args.ax_size is None:
             fig.tight_layout()
