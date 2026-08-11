@@ -191,6 +191,9 @@ class Signal1D(Signal):
         return result
 
     def slice_axis(self, left_limit: float, right_limit: float, include_limit=True):
+        """
+        Return part of the axis where it is between left_limit & right_limit
+        """
         res = self.data.iloc[:, 0][
             (self.data.iloc[:, 0] >= left_limit) & (self.data.iloc[:, 0] <= right_limit)
         ].to_numpy()
@@ -200,6 +203,14 @@ class Signal1D(Signal):
             if right_limit > max(res):
                 res = np.concatenate([res, [right_limit]])
         return res
+
+    def slice_value_by_axis(self, left_limit: float, right_limit: float):
+        """
+        Return part of the value where the corresponding axis is between left_limit & right_limit
+        """
+        return self.data.iloc[:, 1][
+            (self.data.iloc[:, 0] >= left_limit) & (self.data.iloc[:, 0] <= right_limit)
+        ].to_numpy()
 
     def update_data_headers(self):
         old_columns = self.data.columns
@@ -283,6 +294,13 @@ class ContinuousSignal1D_Base(Signal1D):
     def value_margin(self, new_value_margin):
         self.value_annotation.margin = new_value_margin
 
+    def slice_value_by_axis(self, left_limit, right_limit, include_limit: bool = True):
+        sliced_axis = self.slice_axis(
+            left_limit=left_limit, right_limit=right_limit, include_limit=include_limit
+        )
+        sliced_value = self[sliced_axis]
+        return sliced_value
+
     @classmethod
     def from_data(
         cls,
@@ -352,8 +370,8 @@ class ContinuousSignal1D_Base(Signal1D):
         """
         Get the value at the given axis value using 1D interpolation.
         """
-        interpolater = _Interpolate(self.axis, self.value)
-        return interpolater[axis_i]
+        interpolator = _Interpolate(self.axis, self.value)
+        return interpolator[axis_i]
 
     @property
     def std(self):

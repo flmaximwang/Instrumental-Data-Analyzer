@@ -52,13 +52,29 @@ def parse_output(input: str, output: str | None):
 def parse_column_type(colume_type: str):
 
     COLUMN_SPECS = {
-        "10/300": 24,
-        "16/600": 120,
+        "10/300": {
+            "axis_range": 36,
+            "axis_space_major": 5,
+            "axis_space_minor": 1,
+            "axis_digits": 0,
+        },
+        "16/600": {
+            "axis_range": 180,
+            "axis_space_major": 20,
+            "axis_space_minor": 5,
+            "axis_digits": 0,
+        },
     }
 
+    flag = False
     for column_spec in COLUMN_SPECS:
         if column_spec in colume_type:
+            flag = True
             break
+    if not flag:
+        raise ValueError(
+            f"COLUMN_TYPE must contain a column spec in {list(COLUMN_SPECS.keys())}"
+        )
 
     return colume_type, COLUMN_SPECS[column_spec]
 
@@ -66,21 +82,22 @@ def parse_column_type(colume_type: str):
 def main():
 
     args = parse_args()
-    column_type, column_volume = parse_column_type(args.column_type)
+    column_type, column_spec = parse_column_type(args.column_type)
     output = parse_output(args.input, args.output)
 
     my_chrom: Chrom = Unicorn7Project.read_txt(args.input)[0]
     my_chrom.set_default_annotations()
 
-    my_chrom.align_axes(0, column_volume * 1.5)
-    my_chrom.axis_annotation.ticklabel_space_major = column_volume * 1.5 / 10
-    my_chrom.axis_annotation.ticklabel_space_minor = column_volume * 1.5 / 50
+    my_chrom.align_axes(0, column_spec["axis_range"])
+    my_chrom.axis_annotation.ticklabel_space_major = column_spec["axis_space_major"]
+    my_chrom.axis_annotation.ticklabel_space_minor = column_spec["axis_space_minor"]
+    my_chrom.axis_annotation.ticklabel_digits = column_spec["axis_digits"]
 
     visible_signal_names = []
 
     for i in range(args.absorption_channels):
         for signal_name in my_chrom.signal_names:
-            if f"UV_{i+1}" in signal_name:
+            if f"UV {i+1}" in signal_name:
                 visible_signal_names.append(signal_name)
                 break
 
@@ -94,24 +111,31 @@ def main():
         if signal_name in ["Fraction"]:
             continue
         signal: ContinuousSignal1D = my_chrom[signal_name]
-        sliced_data = signal.slice_axis(0, column_volume * 1.5)
-        max_value = max(sliced_data[:, 1])
-        min_value = min(sliced_data[:, 1])
+        sliced_value = signal.slice_value_by_axis(0, column_spec["axis_range"])
+        max_value = max(sliced_value)
+        min_value = min(sliced_value)
         sliced_value_difference = max_value - min_value
         value_range = (
             min_value - 0.1 * sliced_value_difference,
             max_value + 0.1 * sliced_value_difference,
         )
-        ticklabel_space_major = value_range / 5
-        ticklabel_space_minor = value_range / 25
+        ticklabel_space_major = sliced_value_difference / 5
+        ticklabel_space_minor = sliced_value_difference / 25
         my_chrom.align_values([signal_name], *value_range)
         signal.value_annotation.ticklabel_space = (
             ticklabel_space_major,
             ticklabel_space_minor,
         )
-        signal.value_annotation.ticklabel_digits = 3
+        if "UV" in signal_name:
+            signal.value_annotation.ticklabel_digits = 2
+        elif "Cond" in signal_name:
+            signal.value_annotation.ticklabel_digits = 3
+        else:
+            raise ValueError(f"{signal_name} not supported")
 
     my_chrom.name = f"[{column_type}] {args.buffer} ({args.flow_rate}): {args.sample_name} ({args.sample_volume})"
+    my_chrom.plot_args.ax_size = (21, 7)
+    my_chrom.plot_args.axis_shift = 0.11
     fig, axes = my_chrom.plot()
 
     fig.savefig(output, dpi=300)
